@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuantumShield - Prototype</title>
+    <!-- Tailwind via CDN to fulfill Tailwind classes requirement without extra build steps in this single file demo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: '#0A0F1E',
+              card: '#0F1629',
+              primary: '#00D4FF',
+              secondary: '#0066FF',
+              danger: '#FF3B5C',
+              warning: '#FFB800',
+              success: '#00E5A0',
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
