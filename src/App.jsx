@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity, Globe, Code, Network, Server, LayoutDashboard, TrendingDown, TrendingUp, PenLine, SlidersHorizontal, Hash, GitBranch, Clock, X, Shield, Code2, SearchX, Plus, Check, ChevronUp, Download, ExternalLink, Copy, Info, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
-import { AreaChart, Area, LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Line } from 'recharts';
+import { ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity, Globe, Code, Network, Server, LayoutDashboard, TrendingDown, TrendingUp, PenLine, SlidersHorizontal, Hash, GitBranch, Clock, X, Shield, Code2, SearchX, Plus, Check, ChevronUp, Download, ExternalLink, Copy, Info, ArrowRight, AlertCircle, RefreshCw, ChevronsUpDown } from 'lucide-react';
+import { AreaChart, Area, LineChart, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Line } from 'recharts';
 
 const BADGE_STYLES = {
     'quantum-safe': { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' },
@@ -1727,238 +1727,1274 @@ const TLSAnalyzerPage = ({ nav }) => {
 };
 
 
-const CBOMPage = () => (
-    <div>
-        <PageHeader
-            title="CBOM Inventory"
-            subtitle="CycloneDX v1.5 Cryptographic Bill of Materials · 847 components across 247 assets"
-            actions={<><button className="btn-ghost">JSON</button><button className="btn-ghost">XML</button><button className="btn-ghost">CSV</button><button className="btn-primary">↓ PDF Report</button></>}
-        />
+const ALL_CBOM_COMPONENTS = [
+  { id:'CBOM-001', asset:'api.pnbindia.in',          algorithm:'RSA-PKCS1-SHA256',   keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:91, certExpiry:'15 Mar 2025', expired:true,  type:'API',        issuer:'DigiCert Inc' },
+  { id:'CBOM-002', asset:'netbanking.pnbindia.in',   algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:74, certExpiry:'01 Jun 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-003', asset:'vpn.pnbindia.in',          algorithm:'RSA-PKCS1-SHA1',      keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:95, certExpiry:'01 Jan 2026', expired:false, type:'VPN',        issuer:'Entrust CA' },
+  { id:'CBOM-004', asset:'mobile.pnbindia.in',       algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:52, certExpiry:'15 Aug 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-005', asset:'corp.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:18, certExpiry:'01 Feb 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-006', asset:'payments.pnbindia.in',     algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:88, certExpiry:'30 Sep 2025', expired:false, type:'API',        issuer:'GlobalSign' },
+  { id:'CBOM-007', asset:'sso.pnbindia.in',          algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:71, certExpiry:'10 Dec 2025', expired:false, type:'API',        issuer:'Sectigo CA' },
+  { id:'CBOM-008', asset:'cdn.pnbindia.in',          algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:5,  certExpiry:'01 Mar 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-009', asset:'trade.pnbindia.in',        algorithm:'DHE-RSA-2048',        keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:78, certExpiry:'20 Jul 2025', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
+  { id:'CBOM-010', asset:'forex.pnbindia.in',        algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:49, certExpiry:'05 Nov 2025', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-011', asset:'legacy.pnbindia.in',       algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.1', keyExchange:'RSA',            status:'critical',    riskScore:98, certExpiry:'01 Dec 2024', expired:true,  type:'Web Server', issuer:'Comodo CA' },
+  { id:'CBOM-012', asset:'b2b-api.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'critical',    riskScore:87, certExpiry:'14 Aug 2025', expired:false, type:'API',        issuer:'GlobalSign' },
+  { id:'CBOM-013', asset:'admin.pnbindia.in',        algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:73, certExpiry:'30 Oct 2025', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
+  { id:'CBOM-014', asset:'ib.pnbindia.in',           algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:72, certExpiry:'22 Sep 2025', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-015', asset:'mobilebank.pnbindia.in',   algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:69, certExpiry:'18 Jan 2026', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-016', asset:'docs.pnbindia.in',         algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:48, certExpiry:'01 Apr 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-017', asset:'internal.pnbindia.in',     algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:44, certExpiry:'15 May 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-018', asset:'portal.pnbindia.in',       algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:46, certExpiry:'01 Jul 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-019', asset:'loans.pnbindia.in',        algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:51, certExpiry:'20 Aug 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-020', asset:'cards.pnbindia.in',        algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:43, certExpiry:'10 Sep 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
+  { id:'CBOM-021', asset:'static.pnbindia.in',       algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'01 Feb 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-022', asset:'reporting.pnbindia.in',    algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:14, certExpiry:'01 Mar 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-023', asset:'analytics.pnbindia.in',    algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 Mar 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-024', asset:'gateway.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:13, certExpiry:'01 Apr 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-025', asset:'assets.pnbindia.in',       algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:4,  certExpiry:'15 Mar 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-026', asset:'media.pnbindia.in',        algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:3,  certExpiry:'01 Apr 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-027', asset:'secure-api.pnbindia.in',   algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:5,  certExpiry:'15 Apr 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
+  { id:'CBOM-028', asset:'pqc-test.pnbindia.in',     algorithm:'ML-DSA-87',           keySize:'4627-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:2,  certExpiry:'01 May 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
+  { id:'CBOM-029', asset:'infra.pnbindia.in',        algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:4,  certExpiry:'01 May 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-030', asset:'cloud.pnbindia.in',        algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:3,  certExpiry:'15 May 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  // Critical/High mix — branch/region assets
+  { id:'CBOM-031', asset:'branch1.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:90, certExpiry:'20 Mar 2025', expired:true,  type:'Web Server', issuer:'DigiCert Inc' },
+  { id:'CBOM-032', asset:'branch2.pnbindia.in',      algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.1', keyExchange:'RSA',            status:'critical',    riskScore:96, certExpiry:'10 Feb 2025', expired:true,  type:'Web Server', issuer:'Comodo CA' },
+  { id:'CBOM-033', asset:'branch3.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'critical',    riskScore:85, certExpiry:'01 Apr 2025', expired:false, type:'Web Server', issuer:'GlobalSign' },
+  { id:'CBOM-034', asset:'region1.pnbindia.in',      algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:89, certExpiry:'15 Jun 2025', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
+  { id:'CBOM-035', asset:'region2.pnbindia.in',      algorithm:'DHE-RSA-2048',        keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:76, certExpiry:'01 Jul 2025', expired:false, type:'Web Server', issuer:'GlobalSign' },
+  { id:'CBOM-036', asset:'region3.pnbindia.in',      algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:70, certExpiry:'22 Aug 2025', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-037', asset:'api-v2.pnbindia.in',       algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:75, certExpiry:'30 Sep 2025', expired:false, type:'API',        issuer:'DigiCert Inc' },
+  { id:'CBOM-038', asset:'api-v3.pnbindia.in',       algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:68, certExpiry:'15 Oct 2025', expired:false, type:'API',        issuer:'Sectigo CA' },
+  { id:'CBOM-039', asset:'svc1.pnbindia.in',         algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:92, certExpiry:'05 May 2025', expired:false, type:'API',        issuer:'GlobalSign' },
+  { id:'CBOM-040', asset:'svc2.pnbindia.in',         algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'critical',    riskScore:86, certExpiry:'18 Jun 2025', expired:false, type:'API',        issuer:'DigiCert Inc' },
+  // Medium risk assets
+  { id:'CBOM-041', asset:'app1.pnbindia.in',         algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:50, certExpiry:'01 Sep 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-042', asset:'app2.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:47, certExpiry:'15 Oct 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-043', asset:'app3.pnbindia.in',         algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:45, certExpiry:'01 Nov 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-044', asset:'partner1.pnbindia.in',     algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:42, certExpiry:'20 Dec 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
+  { id:'CBOM-045', asset:'partner2.pnbindia.in',     algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:53, certExpiry:'10 Jan 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-046', asset:'svc3.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:48, certExpiry:'25 Feb 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
+  { id:'CBOM-047', asset:'branch4.pnbindia.in',      algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:46, certExpiry:'01 Mar 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-048', asset:'region4.pnbindia.in',      algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:41, certExpiry:'15 Apr 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-049', asset:'branch5.pnbindia.in',      algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:55, certExpiry:'14 Mar 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-050', asset:'app4.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:50, certExpiry:'20 Mar 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  // PQC-ready assets
+  { id:'CBOM-051', asset:'api-v4.pnbindia.in',       algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:17, certExpiry:'01 May 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-052', asset:'svc4.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 May 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-053', asset:'partner3.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:19, certExpiry:'01 Jun 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-054', asset:'region5.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'15 Jun 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-055', asset:'branch6.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:14, certExpiry:'01 Jul 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-056', asset:'app5.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:18, certExpiry:'15 Jul 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-057', asset:'partner4.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:12, certExpiry:'01 Aug 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-058', asset:'svc5.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:11, certExpiry:'15 Aug 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-059', asset:'region6.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:13, certExpiry:'01 Sep 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-060', asset:'branch7.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 Sep 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-061', asset:'api-v5.pnbindia.in',       algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'01 Oct 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-062', asset:'app6.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:17, certExpiry:'15 Oct 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  // More quantum-safe
+  { id:'CBOM-063', asset:'secure-gw.pnbindia.in',    algorithm:'ML-DSA-87',           keySize:'4627-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:2,  certExpiry:'01 Jun 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
+  { id:'CBOM-064', asset:'pqc-prod.pnbindia.in',     algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:4,  certExpiry:'15 Jun 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-065', asset:'vault.pnbindia.in',        algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:1,  certExpiry:'01 Jul 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
+  // More critical/high
+  { id:'CBOM-066', asset:'branch8.pnbindia.in',      algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.0', keyExchange:'RSA',            status:'critical',    riskScore:99, certExpiry:'01 Nov 2024', expired:true,  type:'Web Server', issuer:'Comodo CA' },
+  { id:'CBOM-067', asset:'branch9.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:89, certExpiry:'12 Mar 2026', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
+  { id:'CBOM-068', asset:'region7.pnbindia.in',      algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:87, certExpiry:'25 Mar 2026', expired:false, type:'Web Server', issuer:'GlobalSign' },
+  { id:'CBOM-069', asset:'svc6.pnbindia.in',         algorithm:'DHE-RSA-2048',        keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:77, certExpiry:'01 Apr 2026', expired:false, type:'API',        issuer:'DigiCert Inc' },
+  { id:'CBOM-070', asset:'svc7.pnbindia.in',         algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:72, certExpiry:'15 Apr 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
+  { id:'CBOM-071', asset:'partner5.pnbindia.in',     algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:74, certExpiry:'01 May 2026', expired:false, type:'Web Server', issuer:'GlobalSign' },
+  { id:'CBOM-072', asset:'app7.pnbindia.in',         algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:68, certExpiry:'15 May 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  // Medium
+  { id:'CBOM-073', asset:'branch10.pnbindia.in',     algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:44, certExpiry:'01 Jun 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-074', asset:'region8.pnbindia.in',      algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:40, certExpiry:'15 Jun 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-075', asset:'app8.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:51, certExpiry:'01 Jul 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
+  { id:'CBOM-076', asset:'svc8.pnbindia.in',         algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:54, certExpiry:'15 Jul 2026', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  // More PQC-ready
+  { id:'CBOM-077', asset:'partner6.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:14, certExpiry:'01 Nov 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
+  { id:'CBOM-078', asset:'branch11.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 Nov 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  { id:'CBOM-079', asset:'region9.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'01 Dec 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
+  // Critical tail
+  { id:'CBOM-080', asset:'branch12.pnbindia.in',     algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.0', keyExchange:'RSA',            status:'critical',    riskScore:97, certExpiry:'15 Oct 2024', expired:true,  type:'Web Server', issuer:'Comodo CA' },
+  { id:'CBOM-081', asset:'svc9.pnbindia.in',         algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:90, certExpiry:'01 Sep 2025', expired:false, type:'API',        issuer:'GlobalSign' },
+  { id:'CBOM-082', asset:'region10.pnbindia.in',     algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:73, certExpiry:'10 Apr 2026', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
+  // Quantum safe tail
+  { id:'CBOM-083', asset:'pqc-staging.pnbindia.in',  algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:5,  certExpiry:'01 Aug 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-084', asset:'secure-cdn.pnbindia.in',   algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:2,  certExpiry:'15 Aug 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
+  { id:'CBOM-085', asset:'pqc-api.pnbindia.in',      algorithm:'ML-DSA-87',           keySize:'4627-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:1,  certExpiry:'01 Sep 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
+];
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
-            {[
-                { l: "TOTAL COMPONENTS", v: "847", c: "#111827", i: Hash },
-                { l: "UNIQUE ALGORITHMS", v: "23", c: "#4F46E5", i: GitBranch },
-                { l: "EXPIRING < 30 DAYS", v: "12", c: "#F59E0B", i: Clock },
-                { l: "PQC COMPONENTS", v: "14", c: "#10B981", i: ShieldCheck }
-            ].map((k, i) => (
-                <div key={i} className="card" style={{ padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{k.l}</div>
-                        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: k.c }}>{k.v}</div>
-                    </div>
-                    <div style={{ width: 28, height: 28, borderRadius: 14, background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <k.i size={16} color={k.c} />
-                    </div>
-                </div>
+const ALGO_DISTRIBUTION = [
+  { algo:'RSA-PKCS1-SHA256', count:89,  safe:false, color:'#EF4444' },
+  { algo:'ECDSA-SHA384',     count:67,  safe:false, color:'#F97316' },
+  { algo:'ECDH-SHA256',      count:54,  safe:false, color:'#F97316' },
+  { algo:'AES-128-CBC',      count:43,  safe:false, color:'#F59E0B' },
+  { algo:'RSA-PKCS1-SHA1',   count:31,  safe:false, color:'#EF4444' },
+  { algo:'DHE-RSA-2048',     count:28,  safe:false, color:'#F97316' },
+  { algo:'ECDSA-P256',       count:22,  safe:false, color:'#F59E0B' },
+  { algo:'AES-256-GCM',      count:18,  safe:true,  color:'#10B981' },
+  { algo:'ML-KEM-768',       count:14,  safe:true,  color:'#059669' },
+  { algo:'ML-DSA-65',        count:9,   safe:true,  color:'#059669' },
+  { algo:'SLH-DSA',          count:5,   safe:true,  color:'#059669' },
+  { algo:'ML-DSA-87',        count:3,   safe:true,  color:'#059669' },
+];
+
+const TLS_DISTRIBUTION = [
+  { name:'TLS 1.0', value:8,   color:'#DC2626' },
+  { name:'TLS 1.1', value:19,  color:'#EA580C' },
+  { name:'TLS 1.2', value:172, color:'#F59E0B' },
+  { name:'TLS 1.3', value:48,  color:'#10B981' },
+];
+
+const KEY_EXCHANGE_DIST = [
+  { name:'RSA',            count:89,  safe:false },
+  { name:'ECDHE-RSA',      count:94,  safe:false },
+  { name:'DHE-RSA',        count:43,  safe:false },
+  { name:'ECDHE',          count:27,  safe:false },
+  { name:'X25519',         count:18,  safe:false },
+  { name:'X25519Kyber768', count:38,  safe:true  },
+  { name:'ML-KEM-768',     count:24,  safe:true  },
+  { name:'ML-KEM-1024',    count:14,  safe:true  },
+];
+
+
+const CBOMPage = ({ nav }) => {
+  const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: 'riskScore', dir: 'desc' });
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [kpiAnimated, setKpiAnimated] = useState(false);
+  const [toast, setToast] = useState(null);
+  const tableRef = useRef(null);
+
+  const ROWS_PER_PAGE = 10;
+
+  // KPI count-up animation
+  useEffect(() => { const t = setTimeout(() => setKpiAnimated(true), 50); return () => clearTimeout(t); }, []);
+
+  const AnimatedNumber = ({ value, color }) => {
+    const [display, setDisplay] = useState(0);
+    useEffect(() => {
+      if (!kpiAnimated) { setDisplay(0); return; }
+      const dur = 600; const start = performance.now(); const target = value;
+      const step = (now) => {
+        const p = Math.min((now - start) / dur, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        setDisplay(Math.round(ease * target));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }, [kpiAnimated, value]);
+    return <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 36, fontWeight: 800, color, marginTop: 12, display: 'block' }}>{display}</span>;
+  };
+
+  // Filter + Sort + Paginate
+  const filtered = useMemo(() => {
+    let data = ALL_CBOM_COMPONENTS;
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      data = data.filter(c => c.id.toLowerCase().includes(q) || c.asset.toLowerCase().includes(q) || c.algorithm.toLowerCase().includes(q) || c.issuer.toLowerCase().includes(q));
+    }
+    if (statusFilter === 'expiring') {
+      data = data.filter(c => { const d = new Date(c.certExpiry); const now = new Date(); const diff = (d - now) / (1000*60*60*24); return diff >= 0 && diff <= 30; });
+    } else if (statusFilter === 'pqc-all') {
+      data = data.filter(c => c.status === 'quantum-safe' || c.status === 'pqc-ready');
+    } else if (statusFilter !== 'all') {
+      data = data.filter(c => c.status === statusFilter);
+    }
+    data = [...data].sort((a, b) => {
+      const dir = sortConfig.dir === 'desc' ? -1 : 1;
+      if (sortConfig.key === 'riskScore') return (a.riskScore - b.riskScore) * dir;
+      if (sortConfig.key === 'id') return a.id.localeCompare(b.id) * dir;
+      if (sortConfig.key === 'asset') return a.asset.localeCompare(b.asset) * dir;
+      if (sortConfig.key === 'algorithm') return a.algorithm.localeCompare(b.algorithm) * dir;
+      if (sortConfig.key === 'tlsVer') return a.tlsVer.localeCompare(b.tlsVer) * dir;
+      if (sortConfig.key === 'status') {
+        const order = { critical: 0, high: 1, medium: 2, 'pqc-ready': 3, 'quantum-safe': 4 };
+        return ((order[a.status] || 0) - (order[b.status] || 0)) * dir;
+      }
+      return 0;
+    });
+    return data;
+  }, [searchText, statusFilter, sortConfig]);
+
+  const totalPages = Math.ceil(filtered.length / ROWS_PER_PAGE);
+  const pageData = filtered.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+  useEffect(() => setCurrentPage(1), [searchText, statusFilter, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig(prev => prev.key === key ? { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
+  };
+
+  const toggleRow = (id) => setSelectedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  const toggleSelectAll = () => {
+    if (selectAll) { setSelectedRows([]); setSelectAll(false); }
+    else { setSelectedRows(pageData.map(c => c.id)); setSelectAll(true); }
+  };
+
+  useEffect(() => {
+    const allOnPage = pageData.every(c => selectedRows.includes(c.id));
+    setSelectAll(pageData.length > 0 && allOnPage);
+  }, [selectedRows, pageData]);
+
+  const copyId = (e, id) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  // Export functions
+  const exportCSV = (rows) => {
+    const data = rows || ALL_CBOM_COMPONENTS;
+    const headers = 'COMP ID,Asset,Algorithm,Key Size,TLS Version,Key Exchange,Quantum Status,Risk Score,Cert Expiry,Issuer';
+    const csv = [headers, ...data.map(c => `${c.id},${c.asset},${c.algorithm},${c.keySize},${c.tlsVer},${c.keyExchange},${c.status},${c.riskScore},${c.certExpiry},${c.issuer}`)].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'cbom-inventory.csv'; a.click(); URL.revokeObjectURL(url);
+    showToast('cbom-inventory.csv downloaded');
+  };
+
+  const exportJSON = () => {
+    const envelope = { bomFormat: 'CycloneDX', specVersion: '1.5', version: 1, metadata: { timestamp: new Date().toISOString(), component: { name: 'PNB Public Assets' } }, components: ALL_CBOM_COMPONENTS };
+    const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'cbom-cyclonedx.json'; a.click(); URL.revokeObjectURL(url);
+    showToast('cbom-cyclonedx.json downloaded');
+  };
+
+  const exportXML = () => {
+    let xml = '<?xml version="1.0"?>\n<bom xmlns="http://cyclonedx.org/schema/bom/1.5" version="1">\n  <components>\n';
+    ALL_CBOM_COMPONENTS.forEach(c => { xml += `    <component type="cryptographic-asset">\n      <name>${c.asset}</name>\n      <algorithm>${c.algorithm}</algorithm>\n      <keySize>${c.keySize}</keySize>\n      <tlsVersion>${c.tlsVer}</tlsVersion>\n      <keyExchange>${c.keyExchange}</keyExchange>\n      <status>${c.status}</status>\n      <riskScore>${c.riskScore}</riskScore>\n    </component>\n`; });
+    xml += '  </components>\n</bom>';
+    const blob = new Blob([xml], { type: 'application/xml' }); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'cbom-cyclonedx.xml'; a.click(); URL.revokeObjectURL(url);
+    showToast('cbom-cyclonedx.xml downloaded');
+  };
+
+  const exportPDF = () => { showToast('PDF generation initiated...'); };
+
+  // Color helpers
+  const getAlgoColor = (algo) => {
+    if (/^ML-KEM|^ML-DSA|^SLH-DSA/.test(algo)) return '#059669';
+    if (/X25519Kyber/.test(algo)) return '#2563EB';
+    if (/^RSA/.test(algo)) return '#DC2626';
+    if (/^ECDH|^ECDSA|^DHE/.test(algo)) return '#D97706';
+    if (/AES-128/.test(algo)) return '#7C3AED';
+    return '#374151';
+  };
+
+  const getKeySizeColor = (ks) => {
+    const num = parseInt(ks);
+    if (num >= 3000) return '#059669';
+    if (num >= 256 && num <= 384) return '#D97706';
+    if (num < 256) return '#DC2626';
+    return '#D97706';
+  };
+
+  const getKexColor = (kex) => {
+    if (/^ML-KEM/.test(kex)) return '#059669';
+    if (/X25519Kyber/.test(kex)) return '#2563EB';
+    if (kex === 'RSA') return '#DC2626';
+    if (/DHE-RSA/.test(kex)) return '#EA580C';
+    return '#D97706';
+  };
+
+  const getTlsPill = (ver) => {
+    const styles = {
+      '1.3': { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' },
+      '1.2': { bg: '#FFFBEB', color: '#D97706', border: '#FDE68A' },
+      '1.1': { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
+      '1.0': { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
+    };
+    return styles[ver] || styles['1.2'];
+  };
+
+  const getScoreColor = (s) => {
+    if (s >= 90) return '#DC2626';
+    if (s >= 70) return '#EA580C';
+    if (s >= 50) return '#7C3AED';
+    if (s >= 20) return '#D97706';
+    return '#059669';
+  };
+
+  const getTypeIcon = (type) => {
+    if (type === 'API') return { Icon: Code2, bg: '#EEF2FF', color: '#4F46E5' };
+    if (type === 'VPN') return { Icon: Network, bg: '#F5F3FF', color: '#8B5CF6' };
+    return { Icon: Globe, bg: '#EFF6FF', color: '#3B82F6' };
+  };
+
+  const isSafe = (status) => status === 'quantum-safe' || status === 'pqc-ready';
+
+  // Pagination
+  const getPages = () => {
+    const pages = []; const tp = totalPages;
+    if (tp <= 7) { for (let i = 1; i <= tp; i++) pages.push(i); return pages; }
+    pages.push(1, 2, 3);
+    if (currentPage > 5) pages.push('...');
+    for (let i = Math.max(4, currentPage - 1); i <= Math.min(tp - 1, currentPage + 1); i++) { if (!pages.includes(i)) pages.push(i); }
+    if (currentPage < tp - 4) pages.push('...');
+    if (!pages.includes(tp)) pages.push(tp);
+    return pages;
+  };
+
+  const SortHeader = ({ label, sortKey, width, align }) => (
+    <th onClick={() => handleSort(sortKey)} style={{ width, cursor: 'pointer', textAlign: align || 'left', color: sortConfig.key === sortKey ? '#4F46E5' : undefined }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
+        {label}
+        {sortConfig.key === sortKey ? (sortConfig.dir === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />) : <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />}
+      </div>
+    </th>
+  );
+
+  const kpiCards = [
+    { l: 'TOTAL COMPONENTS', v: 847, c: '#6B7280', vc: '#111827', Icon: Hash, onClick: null },
+    { l: 'UNIQUE ALGORITHMS', v: 23, c: '#4F46E5', vc: '#4F46E5', Icon: GitBranch, onClick: null },
+    { l: 'EXPIRING < 30 DAYS', v: 12, c: '#F59E0B', vc: '#F59E0B', Icon: Clock, onClick: () => { setStatusFilter('expiring'); tableRef.current?.scrollIntoView({ behavior: 'smooth' }); } },
+    { l: 'PQC COMPONENTS', v: 14, c: '#10B981', vc: '#10B981', Icon: ShieldCheck, onClick: () => { setStatusFilter('pqc-all'); tableRef.current?.scrollIntoView({ behavior: 'smooth' }); } },
+  ];
+
+  return (
+    <div>
+      {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 20 }}>
+        {kpiCards.map((k, i) => (
+          <div key={i} onClick={k.onClick} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', cursor: k.onClick ? 'pointer' : 'default', transition: 'box-shadow 0.15s' }}
+            onMouseOver={e => { if (k.onClick) e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}
+            onMouseOut={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10.5, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{k.l}</div>
+              <k.Icon size={20} color={k.c} />
+            </div>
+            <AnimatedNumber value={k.v} color={k.vc} />
+          </div>
+        ))}
+      </div>
+
+      {/* Export Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#6B7280' }}>Cryptographic Bill of Materials</span>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}> · CycloneDX v1.5 Format</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+            {['JSON', 'XML', 'CSV'].map((fmt, i) => (
+              <button key={fmt} onClick={fmt === 'JSON' ? exportJSON : fmt === 'XML' ? exportXML : () => exportCSV()} style={{
+                padding: '8px 14px', background: '#fff', border: 'none', borderRight: i < 2 ? '1px solid #E5E7EB' : 'none',
+                fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer'
+              }} onMouseOver={e => e.currentTarget.style.background = '#F9FAFB'} onMouseOut={e => e.currentTarget.style.background = '#fff'}>{fmt}</button>
             ))}
+          </div>
+          <button className="btn-primary" onClick={exportPDF} style={{ marginLeft: 8 }}>
+            <Download size={14} /> PDF Report
+          </button>
+        </div>
+      </div>
+
+      {/* Main Table Card */}
+      <div ref={tableRef} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+        {/* Card Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Cryptographic Components</span>
+            <span style={{ background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 999, fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, padding: '3px 10px' }}>
+              {filtered.length} components
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} color="#9CA3AF" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 10, pointerEvents: 'none' }} />
+              <input type="text" placeholder="Search components..." value={searchText} onChange={e => setSearchText(e.target.value)}
+                style={{ width: 260, paddingLeft: 34, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '7px 12px 7px 34px' }} />
+            </div>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              style={{ minWidth: 150, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, padding: '7px 32px 7px 12px', fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', appearance: 'auto' }}>
+              <option value="all">All Components</option>
+              <option value="critical">Critical Only</option>
+              <option value="high">High Risk</option>
+              <option value="medium">Medium Risk</option>
+              <option value="pqc-ready">PQC Ready</option>
+              <option value="quantum-safe">Quantum Safe</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="pqc-all">All PQC</option>
+            </select>
+            <div style={{ width: 32, height: 32, border: '1px solid #E5E7EB', borderRadius: 6, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              onMouseOver={e => e.currentTarget.style.background = '#F9FAFB'} onMouseOut={e => e.currentTarget.style.background = '#fff'}>
+              <SlidersHorizontal size={16} color="#6B7280" />
+            </div>
+          </div>
         </div>
 
-        <div className="card" style={{ padding: 0, marginBottom: 20 }}>
-            <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <SectionTitle>Cryptographic Components</SectionTitle>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <div style={{ position: 'relative' }}>
-                        <Search size={14} color="#9CA3AF" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 10 }} />
-                        <input type="text" placeholder="Search components..." style={{ width: 260, paddingLeft: 30 }} />
-                    </div>
-                    <select>
-                        <option>Filter by Risk</option>
-                    </select>
-                    <button className="btn-ghost" style={{ padding: '8px 10px' }}><SlidersHorizontal size={16} /></button>
-                </div>
-            </div>
+        {/* Bulk Actions Bar */}
+        {selectedRows.length > 0 && (
+          <div style={{ background: '#EEF2FF', borderBottom: '1px solid #C7D2FE', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, animation: 'fadeInUp 0.15s ease-out' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#4F46E5' }}>
+              {selectedRows.length} component{selectedRows.length !== 1 ? 's' : ''} selected
+            </span>
+            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => exportCSV(ALL_CBOM_COMPONENTS.filter(c => selectedRows.includes(c.id)))}>
+              <Download size={12} /> Export Selected
+            </button>
+            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => nav('remediation')}>
+              <Wrench size={12} /> Bulk Remediate
+            </button>
+            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => nav('tls-analyzer')}>
+              <Lock size={12} /> View in TLS Analyzer
+            </button>
+            <div style={{ flex: 1 }} />
+            <X size={16} color="#4F46E5" style={{ cursor: 'pointer' }} onClick={() => setSelectedRows([])} />
+          </div>
+        )}
 
-            <div style={{ overflowX: 'auto' }}>
-                <table>
-                    <thead>
+        {/* Table */}
+        <div style={{ overflowX: 'auto' }}>
+          {filtered.length === 0 ? (
+            <div style={{ minHeight: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+              <AlertTriangle size={48} color="#D1D5DB" />
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 600, color: '#374151', marginTop: 12 }}>No components match your criteria</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Try adjusting the search term or risk filter</div>
+              <button className="btn-ghost" style={{ marginTop: 16 }} onClick={() => { setSearchText(''); setStatusFilter('all'); }}>Clear all filters</button>
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 44 }}>
+                    <input type="checkbox" checked={selectAll} ref={el => { if (el) el.indeterminate = selectedRows.length > 0 && !selectAll; }}
+                      onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+                  </th>
+                  <SortHeader label="COMP ID" sortKey="id" width={110} />
+                  <SortHeader label="ASSET" sortKey="asset" width={undefined} />
+                  <SortHeader label="ALGORITHM" sortKey="algorithm" width={180} />
+                  <th style={{ width: 110 }}>KEY SIZE</th>
+                  <SortHeader label="TLS VER" sortKey="tlsVer" width={90} />
+                  <th style={{ width: 160 }}>KEY EXCHANGE</th>
+                  <SortHeader label="QUANTUM STATUS" sortKey="status" width={140} />
+                  <SortHeader label="RISK SCORE" sortKey="riskScore" width={100} align="right" />
+                </tr>
+              </thead>
+              <tbody key={searchText + statusFilter + currentPage}>
+                {pageData.map((c) => {
+                  const typeInfo = getTypeIcon(c.type);
+                  const isSelected = selectedRows.includes(c.id);
+                  const isExpanded = expandedRow === c.id;
+                  const tlsStyle = getTlsPill(c.tlsVer);
+                  const scoreColor = getScoreColor(c.riskScore);
+
+                  return (
+                    <React.Fragment key={c.id}>
+                      <tr onClick={() => setExpandedRow(isExpanded ? null : c.id)}
+                        style={{ background: isSelected ? '#EEF2FF' : isExpanded ? '#F8F9FC' : '#fff', cursor: 'pointer', transition: 'background 0.1s', borderBottom: isExpanded ? '2px solid #C7D2FE' : undefined }}
+                        onMouseOver={e => { if (!isSelected && !isExpanded) e.currentTarget.style.background = '#FAFAFA'; }}
+                        onMouseOut={e => { if (!isSelected && !isExpanded) e.currentTarget.style.background = '#fff'; }}>
+                        <td onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={isSelected} onChange={() => toggleRow(c.id)} style={{ cursor: 'pointer' }} />
+                        </td>
+                        <td style={{ position: 'relative' }}>
+                          <span onClick={e => copyId(e, c.id)} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: '#4F46E5', cursor: 'pointer', transition: 'background 0.2s', padding: '2px 4px', borderRadius: 4, background: copiedId === c.id ? '#EEF2FF' : 'transparent' }}
+                            onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'} onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}>
+                            {c.id}
+                          </span>
+                          {copiedId === c.id && (
+                            <span style={{ position: 'absolute', top: -4, left: '50%', transform: 'translateX(-50%)', background: '#4F46E5', color: '#fff', fontSize: 10, padding: '2px 6px', borderRadius: 4, fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', animation: 'fadeInUp 0.15s ease-out' }}>Copied!</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 20, height: 20, borderRadius: 10, background: typeInfo.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <typeInfo.Icon size={11} color={typeInfo.color} />
+                            </div>
+                            <div>
+                              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{c.asset}</div>
+                              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>{c.issuer}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: getAlgoColor(c.algorithm), fontWeight: /^ML-|^SLH-|X25519Kyber/.test(c.algorithm) ? 600 : 400 }}>{c.algorithm}</td>
+                        <td style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: getKeySizeColor(c.keySize) }}>{c.keySize}</td>
+                        <td>
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, background: tlsStyle.bg, color: tlsStyle.color, border: `1px solid ${tlsStyle.border}`, borderRadius: 999, padding: '2px 8px', display: 'inline-block' }}>{c.tlsVer}</span>
+                        </td>
+                        <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: getKexColor(c.keyExchange), fontWeight: /^ML-KEM|X25519Kyber|^RSA$/.test(c.keyExchange) ? 600 : 400 }}>{c.keyExchange}</td>
+                        <td><Badge type={c.status} /></td>
+                        <td style={{ textAlign: 'right', position: 'relative' }}>
+                          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 800, color: scoreColor }}>{c.riskScore}</span>
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: '#F3F4F6', borderRadius: 1 }}>
+                            <div style={{ width: c.riskScore + '%', height: '100%', background: scoreColor, borderRadius: 1, transition: 'width 0.3s ease' }} />
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Expanded Row */}
+                      {isExpanded && (
                         <tr>
-                            <th style={{ width: 40 }}><input type="checkbox" /></th>
-                            <th>COMP ID</th>
-                            <th>ASSET</th>
-                            <th>ALGORITHM</th>
-                            <th>KEY SIZE</th>
-                            <th>TLS VER</th>
-                            <th>KEY EXCHANGE</th>
-                            <th>QUANTUM STATUS</th>
-                            <th>RISK SCORE</th>
+                          <td colSpan={9} style={{ padding: 0, background: '#F8F9FC', borderBottom: '1px solid #E5E7EB' }}>
+                            <div style={{ padding: '16px 20px', animation: 'fadeInUp 0.2s ease-out' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
+                                {/* Certificate Details */}
+                                <div>
+                                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Certificate Details</div>
+                                  {[['Subject', c.asset], ['Issuer', c.issuer], ['Valid Until', c.certExpiry], ['Type', c.type]].map(([l, v], i) => (
+                                    <div key={i} style={{ marginBottom: 6 }}>
+                                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>{l}</div>
+                                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: l === 'Valid Until' && c.expired ? '#DC2626' : '#374151', fontWeight: 500 }}>{v}{c.expired && l === 'Valid Until' ? ' (EXPIRED)' : ''}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* Cryptographic Profile */}
+                                <div>
+                                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Cryptographic Profile</div>
+                                  {[['Algorithm', c.algorithm, getAlgoColor(c.algorithm)], ['Key Size', c.keySize, getKeySizeColor(c.keySize)], ['Key Exchange', c.keyExchange, getKexColor(c.keyExchange)], ['TLS Version', c.tlsVer, getTlsPill(c.tlsVer).color]].map(([l, v, clr], i) => (
+                                    <div key={i} style={{ marginBottom: 6 }}>
+                                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>{l}</div>
+                                      <div style={{ fontFamily: l === 'Algorithm' || l === 'Key Exchange' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif", fontSize: 11, color: clr, fontWeight: 600 }}>{v}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* Quantum Assessment */}
+                                <div>
+                                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Quantum Assessment</div>
+                                  {[["Shor's Risk", !isSafe(c.status)], ["Grover's Risk", !isSafe(c.status)], ['PQC Detected', isSafe(c.status)], ['HNDL Exposed', !isSafe(c.status)]].map(([l, bad], i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                      {(l === 'PQC Detected') ? (bad ? <CheckCircle size={12} color="#059669" /> : <XCircle size={12} color="#DC2626" />) : (bad ? <XCircle size={12} color="#DC2626" /> : <CheckCircle size={12} color="#059669" />)}
+                                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#374151' }}>{l}: {(l === 'PQC Detected') ? (bad ? 'Yes' : 'No') : (bad ? 'Yes' : 'No')}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* NIST Standards */}
+                                <div>
+                                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>NIST Standards</div>
+                                  {isSafe(c.status) ? (
+                                    [['FIPS 203 (ML-KEM)', /ML-KEM/.test(c.algorithm) || /ML-KEM/.test(c.keyExchange)], ['FIPS 204 (ML-DSA)', /ML-DSA/.test(c.algorithm)], ['FIPS 205 (SLH-DSA)', /SLH-DSA/.test(c.algorithm)]].map(([std, applies], i) => (
+                                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                        {applies ? <CheckCircle size={12} color="#059669" /> : <span style={{ color: '#9CA3AF', fontSize: 11 }}>—</span>}
+                                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: applies ? '#059669' : '#9CA3AF' }}>{std}</span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <>
+                                      {['FIPS 203', 'FIPS 204', 'FIPS 205'].map((f, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                          <XCircle size={12} color="#DC2626" />
+                                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#DC2626' }}>Not {f} compliant</span>
+                                        </div>
+                                      ))}
+                                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#4F46E5', cursor: 'pointer' }} onClick={e => { e.stopPropagation(); nav('remediation'); }}>Upgrade required →</span>
+                                    </>
+                                  )}
+                                </div>
+                                {/* Actions */}
+                                <div>
+                                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Actions</div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <button className="btn-primary" style={{ fontSize: 11, padding: '5px 10px' }} onClick={e => { e.stopPropagation(); nav('tls-analyzer'); }}>View TLS Analysis</button>
+                                    {!isSafe(c.status) && <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={e => { e.stopPropagation(); nav('remediation'); }}>Start Remediation</button>}
+                                    <button className="btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={e => {
+                                      e.stopPropagation();
+                                      const blob = new Blob([JSON.stringify(c, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+                                      const a = document.createElement('a'); a.href = url; a.download = `${c.id}.json`; a.click(); URL.revokeObjectURL(url);
+                                      showToast(`${c.id}.json exported`);
+                                    }}>Export Component</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {[
-                            { id: 'CBOM-001', a: 'api.pnbindia.in', alg: 'RSA-PKCS1-SHA256', b: 'critical', s: 91, sc: '#DC2626' },
-                            { id: 'CBOM-002', a: 'netbanking.pnbindia.in', alg: 'ECDSA-SHA384', b: 'high', s: 74, sc: '#EA580C' },
-                            { id: 'CBOM-003', a: 'vpn.pnbindia.in', alg: 'RSA-PKCS1-SHA1', b: 'critical', s: 95, sc: '#DC2626' },
-                            { id: 'CBOM-004', a: 'mobile.pnbindia.in', alg: 'ECDH-SHA256', b: 'medium', s: 52, sc: '#7C3AED' },
-                            { id: 'CBOM-005', a: 'corp.pnbindia.in', alg: 'ML-KEM-768', b: 'quantum-safe', s: 8, sc: '#059669' },
-                            { id: 'CBOM-006', a: 'payments.pnbindia.in', alg: 'RSA-2048', b: 'critical', s: 88, sc: '#DC2626' },
-                            { id: 'CBOM-007', a: 'sso.pnbindia.in', alg: 'ECDSA-P256', b: 'high', s: 71, sc: '#EA580C' },
-                            { id: 'CBOM-008', a: 'cdn.pnbindia.in', alg: 'ML-DSA-65', b: 'quantum-safe', s: 5, sc: '#059669' },
-                            { id: 'CBOM-009', a: 'trade.pnbindia.in', alg: 'DHE-RSA-2048', b: 'high', s: 78, sc: '#EA580C' },
-                            { id: 'CBOM-010', a: 'forex.pnbindia.in', alg: 'AES-128-CBC', b: 'medium', s: 49, sc: '#7C3AED' }
-                        ].map((r, i) => (
-                            <tr key={i}>
-                                <td><input type="checkbox" /></td>
-                                <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#4F46E5' }}>{r.id}</td>
-                                <td style={{ fontWeight: 500 }}>{r.a}</td>
-                                <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#374151' }}>{r.alg}</td>
-                                <td><Shimmer h={16} w={60} /></td>
-                                <td><Shimmer h={16} w={60} /></td>
-                                <td><Shimmer h={16} w={90} /></td>
-                                <td><Badge type={r.b} /></td>
-                                <td style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: r.sc }}>{r.s}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-            <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>Showing 10 of 847 components</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                    {['<', '1', '2', '3', '...', '85', '>'].map((p, i) => (
-                        <button key={i} style={{
-                            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: p === '1' ? '#4F46E5' : '#F9FAFB', color: p === '1' ? 'white' : '#6B7280',
-                            border: p === '1' ? 'none' : '1px solid #E5E7EB', borderRadius: 6,
-                            fontFamily: "'Inter', sans-serif", fontSize: 12, cursor: 'pointer'
-                        }}>{p}</button>
-                    ))}
+        {/* Table Footer */}
+        {filtered.length > 0 && (
+          <div style={{ padding: '14px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>
+              Showing {(currentPage - 1) * ROWS_PER_PAGE + 1}–{Math.min(currentPage * ROWS_PER_PAGE, filtered.length)} of {filtered.length} components
+              {filtered.length < ALL_CBOM_COMPONENTS.length && ` (filtered from ${ALL_CBOM_COMPONENTS.length})`}
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}>
+                <ChevronLeft size={14} color="#6B7280" />
+              </button>
+              {getPages().map((p, i) => (
+                <button key={i} onClick={() => typeof p === 'number' && setCurrentPage(p)}
+                  style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p === currentPage ? '#4F46E5' : '#F9FAFB', color: p === currentPage ? '#fff' : '#6B7280', border: p === currentPage ? 'none' : '1px solid #E5E7EB', borderRadius: 6, fontFamily: "'Inter', sans-serif", fontSize: 12, cursor: typeof p === 'number' ? 'pointer' : 'default' }}>
+                  {p}
+                </button>
+              ))}
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}>
+                <ChevronRight size={14} color="#6B7280" />
+              </button>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF', marginLeft: 8 }}>{totalPages} pages</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Algorithm Distribution */}
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Algorithm Distribution</span>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={ALGO_DISTRIBUTION} layout="vertical" margin={{ top: 0, right: 20, left: 90, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+              <XAxis type="number" tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="algo" tick={{ fontFamily: 'JetBrains Mono', fontSize: 10, fill: '#374151' }} axisLine={false} tickLine={false} width={85} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(val) => [val + ' assets', 'Usage']} cursor={{ fill: '#F9FAFB' }} />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={16}>
+                {ALGO_DISTRIBUTION.map((entry, i) => <Cell key={i} fill={entry.color} fillOpacity={0.85} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'flex', gap: 16, marginTop: 8, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: 4, background: '#EF4444' }} /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280' }}>Quantum Vulnerable</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: 4, background: '#059669' }} /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280' }}>Quantum Safe</span></div>
+          </div>
+        </div>
+
+        {/* TLS Version Distribution */}
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>TLS Version Distribution</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>247 assets total</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ position: 'relative' }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={TLS_DISTRIBUTION} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value" startAngle={90} endAngle={-270} animationDuration={800}>
+                    {TLS_DISTRIBUTION.map((entry, i) => <Cell key={i} fill={entry.color} stroke="none" />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12 }} formatter={(val) => [val + ' assets (' + Math.round(val / 247 * 100) + '%)', '']} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, color: '#111827' }}>247</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>assets</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
+              {TLS_DISTRIBUTION.map((t, i) => (
+                <div key={i}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 5, background: t.color, flexShrink: 0 }} />
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#111827', minWidth: 50 }}>{t.name}</span>
+                    <div style={{ flex: 1, height: 4, background: '#F3F4F6', borderRadius: 2 }}>
+                      <div style={{ width: (t.value / 247 * 100) + '%', height: '100%', background: t.color, borderRadius: 2, transition: 'width 0.5s ease' }} />
+                    </div>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#111827', minWidth: 24, textAlign: 'right' }}>{t.value}</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', marginLeft: 1, minWidth: 36 }}>{Math.round(t.value / 247 * 1000) / 10}%</span>
+                  </div>
                 </div>
+              ))}
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Quantum Safe Ready: 48 (19.4%)</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#DC2626' }}>Needs Upgrade: 199 (80.6%)</div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <div className="card">
-                <div style={{ marginBottom: 16 }}><SectionTitle>Algorithm Distribution</SectionTitle></div>
-                <Shimmer h={200} label="Bar Chart — Algorithm Usage Count" />
-            </div>
-            <div className="card">
-                <div style={{ marginBottom: 16 }}><SectionTitle>TLS Version Distribution</SectionTitle></div>
-                <Shimmer h={200} label="Donut Chart — TLS 1.0 / 1.1 / 1.2 / 1.3" />
-            </div>
+      {/* CBOM Metadata Panel */}
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 20 }}>
+        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>CBOM Metadata</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+          <div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Document Info</div>
+            {[['Format', 'CycloneDX v1.5'], ['Serial', 'urn:uuid:pnb-cbom-2026-03'], ['Version', '1'], ['Generated', 'Mar 12, 2026 10:24 AM IST']].map(([l, v], i) => (
+              <div key={i} style={{ marginBottom: 6 }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>{l}</div>
+                <div style={{ fontFamily: l === 'Serial' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif", fontSize: 11, color: '#374151', fontWeight: 500 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Coverage</div>
+            {[['Total Assets', '247'], ['Components Mapped', '847'], ['Coverage', '100%']].map(([l, v], i) => (
+              <div key={i} style={{ marginBottom: 6 }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>{l}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#374151', fontWeight: 500 }}>{v}</div>
+              </div>
+            ))}
+            <div style={{ height: 4, background: '#F3F4F6', borderRadius: 2, marginTop: 4 }}><div style={{ width: '100%', height: '100%', background: '#10B981', borderRadius: 2 }} /></div>
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Risk Summary</div>
+            {[['Critical', 36, '#DC2626'], ['High', 72, '#EA580C'], ['Medium', 39, '#7C3AED'], ['PQC Ready', 61, '#2563EB'], ['Safe', 38, '#059669']].map(([l, v, c], i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: c }} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#374151' }}>{l}: {v} components</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Standards Compliance</div>
+            {[['CycloneDX 1.5', true, 'Compliant'], ['NIST SP 800-208', false, '14% compliant'], ['RBI Framework', false, '42% compliant'], ['OWASP CycloneDX', true, 'Valid']].map(([l, ok, v], i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                {ok ? <CheckCircle size={12} color="#059669" /> : <XCircle size={12} color="#DC2626" />}
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#374151' }}>{l}: <span style={{ color: ok ? '#059669' : '#DC2626', fontWeight: 600 }}>{v}</span></span>
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.2s ease-out', zIndex: 1000 }}>
+          <CheckCircle size={16} color="#10B981" />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151', fontWeight: 500 }}>{toast}</span>
+        </div>
+      )}
     </div>
-);
+  );
+};
 
 
-const RiskPage = () => (
-    <div>
-        <PageHeader
-            title="Quantum Risk Assessment"
-            subtitle="Organization-wide quantum vulnerability scoring and HNDL exposure analysis"
-            actions={<><button className="btn-ghost">Configure Parameters</button><button className="btn-primary">↓ Risk Report</button></>}
-        />
+const RISK_DATA = {
+  overallScore: 67.4,
+  status: 'high',
+  totalAssets: 247,
+  vulnerableAssets: 147,
+  lastImprovement: 4.2,
+  lastImprovementDir: 'down',
+  byCategory: [
+    { label:'Critical', count:36,  color:'#EF4444', pct:14.6 },
+    { label:'High',     count:72,  color:'#F97316', pct:29.1 },
+    { label:'Medium',   count:39,  color:'#F59E0B', pct:15.8 },
+    { label:'PQC Ready',count:61,  color:'#3B82F6', pct:24.7 },
+    { label:'Safe',     count:38,  color:'#10B981', pct:15.4 },
+    { label:'Unscanned',count:1,   color:'#D1D5DB', pct:0.4  },
+  ],
+  sixMonthTrend: [
+    { month:'Oct 25', score:78.2, critical:42, safe:24 },
+    { month:'Nov 25', score:75.6, critical:40, safe:27 },
+    { month:'Dec 25', score:73.1, critical:38, safe:30 },
+    { month:'Jan 26', score:71.4, critical:37, safe:33 },
+    { month:'Feb 26', score:69.8, critical:36, safe:36 },
+    { month:'Mar 26', score:67.4, critical:36, safe:38 },
+  ],
+};
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 20 }}>
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
-                <div>
-                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 64, fontWeight: 800, color: '#EF4444' }}>67.4</span>
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, color: '#9CA3AF' }}>/100</span>
+const HNDL_DATA = {
+  firstEncryptedYear: 2017,
+  currentYear: 2026,
+  crqcYear: 2031,
+  dataVolume: '4.7 TB',
+  sensitiveRecords: '2.3M',
+  yearsOfInterception: 7,
+  timeline: [
+    { year:2017, event:'First encrypted traffic recorded', type:'start' },
+    { year:2019, event:'Digital banking expansion', type:'milestone' },
+    { year:2021, event:'API gateway launched', type:'milestone' },
+    { year:2023, event:'HNDL attacks reported globally', type:'warning' },
+    { year:2025, event:'NIST PQC standards finalized', type:'positive' },
+    { year:2026, event:'Current — data being intercepted', type:'current' },
+    { year:2031, event:'Estimated CRQC emergence', type:'threat' },
+  ],
+  sliderMin: 2028,
+  sliderMax: 2035,
+  crqcRiskMap: {
+    2028: { risk:'EXTREME', color:'#7F1D1D', dataAtRisk:'4.7 TB', records:'2.3M', years:11 },
+    2029: { risk:'EXTREME', color:'#DC2626', dataAtRisk:'4.7 TB', records:'2.3M', years:12 },
+    2030: { risk:'CRITICAL', color:'#EF4444', dataAtRisk:'4.7 TB', records:'2.3M', years:13 },
+    2031: { risk:'HIGH',    color:'#F97316', dataAtRisk:'4.7 TB', records:'2.3M', years:14 },
+    2032: { risk:'HIGH',    color:'#F59E0B', dataAtRisk:'4.2 TB', records:'2.1M', years:15 },
+    2033: { risk:'MEDIUM',  color:'#F59E0B', dataAtRisk:'3.8 TB', records:'1.9M', years:16 },
+    2034: { risk:'MEDIUM',  color:'#8B5CF6', dataAtRisk:'3.2 TB', records:'1.6M', years:17 },
+    2035: { risk:'LOWER',   color:'#6B7280', dataAtRisk:'2.5 TB', records:'1.2M', years:18 },
+  },
+};
+
+const RISK_MATRIX_ASSETS = [
+  { domain:'vpn.pnbindia.in',       x:92, y:88, status:'critical', r:10 },
+  { domain:'api.pnbindia.in',       x:88, y:85, status:'critical', r:10 },
+  { domain:'payments.pnbindia.in',  x:85, y:82, status:'critical', r:9  },
+  { domain:'legacy.pnbindia.in',    x:95, y:90, status:'critical', r:11 },
+  { domain:'netbanking.pnbindia.in',x:76, y:62, status:'high',     r:8  },
+  { domain:'sso.pnbindia.in',       x:72, y:58, status:'high',     r:7  },
+  { domain:'trade.pnbindia.in',     x:78, y:65, status:'high',     r:8  },
+  { domain:'b2b-api.pnbindia.in',   x:80, y:68, status:'high',     r:8  },
+  { domain:'mobile.pnbindia.in',    x:52, y:45, status:'medium',   r:7  },
+  { domain:'docs.pnbindia.in',      x:48, y:42, status:'medium',   r:6  },
+  { domain:'portal.pnbindia.in',    x:45, y:38, status:'medium',   r:6  },
+  { domain:'loans.pnbindia.in',     x:55, y:48, status:'medium',   r:6  },
+  { domain:'corp.pnbindia.in',      x:22, y:18, status:'pqc-ready',r:6  },
+  { domain:'static.pnbindia.in',    x:18, y:15, status:'pqc-ready',r:5  },
+  { domain:'cdn.pnbindia.in',       x:8,  y:5,  status:'quantum-safe', r:5 },
+  { domain:'assets.pnbindia.in',    x:6,  y:4,  status:'quantum-safe', r:5 },
+];
+
+const TOP_CRITICAL_ASSETS = [
+  { rank:1,  domain:'vpn.pnbindia.in',         score:95, status:'critical',    exposure:'Direct RSA key exchange' },
+  { rank:2,  domain:'api.pnbindia.in',          score:91, status:'critical',    exposure:'TLS 1.2 + expired cert'  },
+  { rank:3,  domain:'legacy.pnbindia.in',       score:98, status:'critical',    exposure:'TLS 1.1 + RSA-1024'      },
+  { rank:4,  domain:'payments.pnbindia.in',     score:88, status:'critical',    exposure:'RSA-2048 key exchange'   },
+  { rank:5,  domain:'b2b-api.pnbindia.in',      score:87, status:'critical',    exposure:'DHE-RSA + TLS 1.2'       },
+  { rank:6,  domain:'netbanking.pnbindia.in',   score:74, status:'high',        exposure:'ECDHE-RSA, no PQC'       },
+  { rank:7,  domain:'trade.pnbindia.in',        score:78, status:'high',        exposure:'DHE-RSA key exchange'    },
+  { rank:8,  domain:'admin.pnbindia.in',        score:73, status:'high',        exposure:'RSA cert + TLS 1.2'      },
+  { rank:9,  domain:'sso.pnbindia.in',          score:71, status:'high',        exposure:'ECDSA-P256, no hybrid'   },
+  { rank:10, domain:'forex.pnbindia.in',        score:76, status:'high',        exposure:'AES-128 + ECDHE'         },
+];
+
+const ALGO_VULN_TABLE = [
+  { algo:'RSA (all sizes)',    shors:true,  grovers:false, nistrec:'Replace with ML-KEM/ML-DSA', urgent:true  },
+  { algo:'ECDSA / ECDH',      shors:true,  grovers:false, nistrec:'Replace with ML-DSA-65',      urgent:true  },
+  { algo:'DHE / DH',          shors:true,  grovers:false, nistrec:'Replace with ML-KEM-768',      urgent:true  },
+  { algo:'AES-128',           shors:false, grovers:true,  nistrec:'Upgrade to AES-256',           urgent:false },
+  { algo:'AES-256',           shors:false, grovers:false, nistrec:'No action needed',             urgent:false },
+  { algo:'SHA-256',           shors:false, grovers:true,  nistrec:'Use SHA-384 or SHA-512',       urgent:false },
+  { algo:'ML-KEM-768',        shors:false, grovers:false, nistrec:'FIPS 203 — Keep using',        urgent:false },
+  { algo:'ML-DSA-65',         shors:false, grovers:false, nistrec:'FIPS 204 — Keep using',        urgent:false },
+  { algo:'SLH-DSA',           shors:false, grovers:false, nistrec:'FIPS 205 — Keep using',        urgent:false },
+];
+
+const KEY_EXCHANGE_DIST_RISK = [
+  { name:'RSA',            count:89,  safe:false, color:'#EF4444' },
+  { name:'ECDHE-RSA',      count:94,  safe:false, color:'#F97316' },
+  { name:'DHE-RSA',        count:43,  safe:false, color:'#F97316' },
+  { name:'ECDHE',          count:27,  safe:false, color:'#F59E0B' },
+  { name:'X25519',         count:18,  safe:false, color:'#F59E0B' },
+  { name:'X25519Kyber768', count:38,  safe:true,  color:'#10B981' },
+  { name:'ML-KEM-768',     count:24,  safe:true,  color:'#059669' },
+  { name:'ML-KEM-1024',    count:14,  safe:true,  color:'#059669' },
+];
+
+
+const RiskPage = ({ nav }) => {
+  const [crqcYear, setCrqcYear] = useState(2031);
+  const [scoreAnimated, setScoreAnimated] = useState(0);
+  const [matrixTooltip, setMatrixTooltip] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [reportGenerating, setReportGenerating] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configCrqc, setConfigCrqc] = useState(2031);
+  const [barsAnimated, setBarsAnimated] = useState(false);
+  const [rankPage, setRankPage] = useState(1);
+  const [rankSearch, setRankSearch] = useState('');
+
+  const currentHNDL = HNDL_DATA.crqcRiskMap[crqcYear];
+  const yearsExposed = crqcYear - HNDL_DATA.firstEncryptedYear;
+
+  useEffect(() => {
+    let start = 0; const end = RISK_DATA.overallScore; const dur = 1500; const step = end / (dur / 16);
+    const timer = setInterval(() => { start += step; if (start >= end) { setScoreAnimated(end); clearInterval(timer); } else { setScoreAnimated(parseFloat(start.toFixed(1))); } }, 16);
+    setTimeout(() => setBarsAnimated(true), 300);
+    return () => clearInterval(timer);
+  }, []);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  const handleGenerateReport = () => {
+    setReportGenerating(true);
+    setTimeout(() => {
+      const report = `PNB QuantumShield — Quantum Risk Report\nGenerated: ${new Date().toLocaleString()}\n\nOVERALL RISK SCORE: ${RISK_DATA.overallScore}/100 (HIGH)\nVulnerable Assets: ${RISK_DATA.vulnerableAssets} of ${RISK_DATA.totalAssets}\n\nTOP CRITICAL ASSETS:\n${TOP_CRITICAL_ASSETS.map(a => `  ${a.rank}. ${a.domain} — Score: ${a.score} — ${a.exposure}`).join('\n')}\n\nHNDL EXPOSURE:\nData at risk: ${currentHNDL.dataAtRisk}\nRecords: ${currentHNDL.records}\nProjected CRQC: ${crqcYear}\n\nRECOMMENDED ACTIONS:\n1. Replace all RSA key exchanges with ML-KEM-768\n2. Upgrade TLS 1.0/1.1 endpoints to TLS 1.3\n3. Deploy hybrid PQC certificates on critical assets\n4. Implement crypto-agility framework\n5. Establish continuous CBOM monitoring`;
+      const blob = new Blob([report], { type: 'text/plain' }); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'quantum-risk-report.txt'; a.click(); URL.revokeObjectURL(url);
+      setReportGenerating(false); showToast('Risk report downloaded');
+    }, 1800);
+  };
+
+  const matrixColors = { critical:'#EF4444', high:'#F97316', medium:'#F59E0B', 'pqc-ready':'#3B82F6', 'quantum-safe':'#10B981' };
+  const getScoreColor = (s) => { if (s >= 90) return '#DC2626'; if (s >= 70) return '#EA580C'; if (s >= 50) return '#7C3AED'; if (s >= 20) return '#D97706'; return '#059669'; };
+
+  const tabStyle = (t) => ({ padding: '10px 18px', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: activeTab === t ? 600 : 500, color: activeTab === t ? '#4F46E5' : '#6B7280', borderBottom: activeTab === t ? '2px solid #4F46E5' : '2px solid transparent', background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: 2, borderBottomColor: activeTab === t ? '#4F46E5' : 'transparent', transition: 'color 0.15s' });
+
+  const sliderStyle = `
+    .crqc-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #EF4444, #F97316, #F59E0B, #6B7280); outline: none; cursor: pointer; }
+    .crqc-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid #4F46E5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
+    .crqc-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid #4F46E5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
+    .dot-pulse { animation: pulseDot 2s infinite; }
+  `;
+
+  const renderOverview = () => (
+    <>
+      {/* ROW 1: 3 columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Risk Score Card */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center', minHeight: 280 }}>
+          <div>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 72, fontWeight: 800, color: '#EF4444' }}>{scoreAnimated}</span>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 24, fontWeight: 400, color: '#9CA3AF', verticalAlign: 'baseline', marginLeft: 4 }}>/100</span>
+          </div>
+          <div style={{ marginTop: 14, background: '#FFF7ED', color: '#EA580C', border: '1px solid #FED7AA', borderRadius: 999, padding: '5px 16px', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>HIGH RISK</div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9CA3AF', marginTop: 16, maxWidth: 220, lineHeight: 1.6 }}>{RISK_DATA.vulnerableAssets} of {RISK_DATA.totalAssets} assets have quantum-vulnerable configurations</div>
+          <div style={{ marginTop: 20, width: '100%' }}>
+            {RISK_DATA.byCategory.filter(c => c.label !== 'Unscanned').map((cat, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: cat.color, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280', width: 64, textAlign: 'left' }}>{cat.label}</span>
+                <div style={{ flex: 1, height: 4, background: '#F3F4F6', borderRadius: 2 }}>
+                  <div style={{ height: '100%', width: barsAnimated ? (cat.count / 247 * 100) + '%' : '0%', background: cat.color, borderRadius: 2, transition: `width 1s ease-out ${i * 0.1}s` }} />
                 </div>
-                <div style={{ marginTop: 10 }}><Badge type="high" /></div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginTop: 12, maxWidth: 200, textAlign: 'center' }}>
-                    147 of 247 assets have quantum-vulnerable configurations
-                </div>
-            </div>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151', width: 24, textAlign: 'right' }}>{cat.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="card">
-                <SectionTitle>By Category</SectionTitle>
-                <div style={{ marginBottom: 12 }}><Shimmer h={140} label="Stacked Bar — Risk by Asset Type" /></div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {[
-                        { l: "Critical", c: "#EF4444", v: "36 assets" },
-                        { l: "High", c: "#F97316", v: "72 assets" },
-                        { l: "Medium", c: "#F59E0B", v: "39 assets" },
-                        { l: "Safe", c: "#10B981", v: "99 assets" }
-                    ].map((r, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151' }}>
-                                <span style={{ width: 8, height: 8, borderRadius: 4, background: r.c }} /> {r.l}
-                            </div>
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600 }}>{r.v}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="card">
-                <SectionTitle>6-Month Trend</SectionTitle>
-                <div style={{ marginBottom: 12 }}><Shimmer h={140} label="Line Chart — Risk Score Trend" /></div>
+        {/* By Category Card */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>By Category</div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>247 total assets</div>
+          <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginTop: 16 }}>
+            {RISK_DATA.byCategory.map((cat, i) => (
+              <div key={i} style={{ width: barsAnimated ? cat.pct + '%' : '0%', background: cat.color, transition: `width 1s ease-out ${i * 0.08}s` }} title={`${cat.label}: ${cat.pct}%`} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
+            {RISK_DATA.byCategory.map((cat, i) => (
+              <div key={i} onMouseEnter={() => setHoveredCategory(cat.label)} onMouseLeave={() => setHoveredCategory(null)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #F9FAFB', cursor: 'pointer', borderRadius: 6, transition: 'background 0.1s', background: hoveredCategory === cat.label ? '#FAFAFA' : 'transparent' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <TrendingDown size={16} color="#10B981" />
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#10B981' }}>↓ 4.2 improvement from last month</span>
+                  <div style={{ width: 10, height: 10, borderRadius: 5, background: cat.color }} />
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: hoveredCategory === cat.label ? 600 : 500, color: hoveredCategory === cat.label ? '#111827' : '#374151' }}>{cat.label}</span>
                 </div>
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: '#111827' }}>{cat.count}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 999, padding: '1px 6px' }}>{cat.pct}%</span>
+                  <div style={{ width: 40, height: 3, background: '#F3F4F6', borderRadius: 1.5 }}><div style={{ width: cat.pct + '%', height: '100%', background: cat.color, borderRadius: 1.5 }} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#374151' }}>Total</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#111827' }}>247 assets</span>
+          </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 20 }}>
-            <SectionTitle>Harvest Now, Decrypt Later — Exposure Calculator</SectionTitle>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
-                Estimate total sensitive data at risk based on estimated CRQC emergence timeline
-            </div>
+        {/* 6-Month Trend Card */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>6-Month Trend</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={RISK_DATA.sixMonthTrend} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+              <defs><linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.1} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0} /></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontFamily: 'Inter', fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis domain={[60, 85]} tick={{ fontFamily: 'Inter', fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(val) => [val.toFixed(1), 'Risk Score']} labelStyle={{ color: '#111827', fontWeight: 600 }} cursor={{ stroke: '#E5E7EB' }} />
+              <Area type="monotone" dataKey="score" stroke="#EF4444" strokeWidth={2.5} fill="url(#scoreGrad)" dot={false} activeDot={{ r: 5, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }} animationDuration={1200} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <TrendingDown size={16} color="#10B981" />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#10B981' }}>↓ {RISK_DATA.lastImprovement} improvement from last month</span>
+            <span style={{ color: '#D1D5DB', margin: '0 4px' }}>·</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Target: &lt;50 by Q4 2026</span>
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, textAlign: 'center' }}>
+            {[['78.2', '#EF4444', '6 MONTHS AGO'], ['4.8', '#10B981', 'TOTAL DROP'], ['50', '#3B82F6', 'Q4 TARGET']].map(([v, c, l], i) => (
+              <div key={i}><div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: c }}>{v}</div><div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', marginTop: 2 }}>{l}</div></div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginTop: 20 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* HNDL Calculator */}
+      <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: '#111827' }}>Harvest Now, Decrypt Later — Exposure Calculator</div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Estimate total sensitive data at risk based on estimated CRQC emergence timeline</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr', gap: 32, marginTop: 20, alignItems: 'start' }}>
+          {/* Left */}
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>Encrypted data on record since</div>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: '#111827' }}>2017</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#6B7280', marginLeft: 8 }}>({yearsExposed} years exposed)</span>
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginBottom: 12 }}>Estimated CRQC emergence</div>
+              <style>{sliderStyle}</style>
+              <input type="range" className="crqc-slider" min={2028} max={2035} step={1} value={crqcYear} onChange={e => setCrqcYear(Number(e.target.value))} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                {[2028,2029,2030,2031,2032,2033,2034,2035].map(y => <span key={y} style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: '#9CA3AF' }}>{y}</span>)}
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 36, fontWeight: 800, color: currentHNDL.color }}>{crqcYear}</span>
+                <span style={{ marginLeft: 8, background: currentHNDL.color + '15', color: currentHNDL.color, border: `1px solid ${currentHNDL.color}30`, borderRadius: 999, padding: '4px 12px', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{currentHNDL.risk}</span>
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280', marginTop: 8 }}>{yearsExposed} years of encrypted data potentially decryptable in {crqcYear - 2026} years</div>
+            </div>
+          </div>
+          {/* Middle */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[['DATA VOLUME AT RISK', '~' + currentHNDL.dataAtRisk, '#EF4444'], ['SENSITIVE RECORDS', currentHNDL.records, '#F97316'], ['YEARS OF INTERCEPTION', yearsExposed + ' years', '#F59E0B']].map(([l, v, c], i) => (
+              <div key={i} style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.08em', marginBottom: 6 }}>{l}</div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: c, transition: 'color 0.2s' }}>{v}</div>
+              </div>
+            ))}
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', lineHeight: 1.5, fontStyle: 'italic', marginTop: 4 }}>* Estimates based on observed traffic patterns and known digital banking usage data</div>
+          </div>
+          {/* Right — Timeline */}
+          <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, minHeight: 200 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 14 }}>HNDL Timeline 2017 → {crqcYear}</div>
+            <div style={{ position: 'relative', paddingLeft: 24 }}>
+              <div style={{ position: 'absolute', left: 8, top: 0, bottom: 0, width: 2, background: 'linear-gradient(to bottom, #10B981, #F59E0B, #EF4444)', borderRadius: 1 }} />
+              {HNDL_DATA.timeline.filter(e => e.year <= crqcYear + 1).map((ev, i) => {
+                const dotColors = { start: '#10B981', milestone: '#3B82F6', warning: '#F59E0B', positive: '#10B981', current: '#4F46E5', threat: '#EF4444' };
+                const isCurrent = ev.type === 'current'; const isThreat = ev.type === 'threat';
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: -20, top: 2, width: 10, height: 10, borderRadius: 5, background: dotColors[ev.type], border: '2px solid #fff', boxShadow: isCurrent ? '0 0 0 3px rgba(79,70,229,0.3)' : 'none' }} className={isCurrent ? 'dot-pulse' : ''} />
                     <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginBottom: 2 }}>Encrypted data on record since</div>
-                        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: '#111827' }}>2017 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 400, color: '#6B7280' }}>(7 years exposed)</span></div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, color: isCurrent ? '#4F46E5' : isThreat ? '#DC2626' : '#9CA3AF' }}>{ev.year}</div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: isCurrent || isThreat ? 600 : 500, color: isCurrent ? '#111827' : isThreat ? '#DC2626' : '#374151', marginTop: 1 }}>{isThreat ? '⚠ ' : ''}{ev.event}</div>
                     </div>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>Estimated CRQC emergence</div>
-                        <Shimmer h={36} label="Year slider 2028–2035" />
-                        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 24, fontWeight: 800, color: '#F59E0B', marginTop: 8 }}>2031</div>
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {[
-                        { l: "DATA VOLUME AT RISK", v: "~4.7 TB", c: "#EF4444" },
-                        { l: "SENSITIVE RECORDS", v: "2.3M", c: "#F97316" },
-                        { l: "YEARS OF INTERCEPTION", v: "7 years", c: "#F59E0B" }
-                    ].map((k, i) => (
-                        <div key={i} style={{ background: '#F9FAFB', padding: 14, borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#9CA3AF' }}>{k.l}</div>
-                            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, color: k.c }}>{k.v}</div>
-                        </div>
-                    ))}
-                </div>
-
-                <div>
-                    <Shimmer h={160} label="HNDL Timeline 2017 → 2031" />
-                </div>
+                  </div>
+                );
+              })}
             </div>
+            {crqcYear < 2031 && (
+              <div style={{ background: '#FEF2F2', borderRadius: 6, padding: '8px 12px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertTriangle size={12} color="#DC2626" />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#DC2626' }}>Earlier CRQC = more data at risk</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ROW 3: Matrix + Top Assets */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Risk Matrix */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Risk Matrix</span>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[['Critical','#EF4444'],['High','#F97316'],['Medium','#F59E0B'],['PQC Ready','#3B82F6'],['Safe','#10B981']].map(([l,c],i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 4, background: c }} /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280' }}>{l}</span></div>
+              ))}
+            </div>
+          </div>
+          <div style={{ position: 'relative', height: 320, border: '1px solid #F3F4F6', borderRadius: 8, overflow: 'hidden' }}>
+            {/* Quadrant backgrounds */}
+            <div style={{ position: 'absolute', top: 0, left: '50%', right: 0, bottom: '50%', background: 'rgba(239,68,68,0.04)' }}><span style={{ position: 'absolute', top: 6, right: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(239,68,68,0.4)' }}>CRITICAL ZONE</span></div>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: '50%', bottom: '50%', background: 'rgba(245,158,11,0.04)' }}><span style={{ position: 'absolute', top: 6, left: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(245,158,11,0.4)' }}>MONITOR</span></div>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', right: 0, bottom: 0, background: 'rgba(245,158,11,0.04)' }}><span style={{ position: 'absolute', bottom: 6, right: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(245,158,11,0.4)' }}>WATCH</span></div>
+            <div style={{ position: 'absolute', top: '50%', left: 0, right: '50%', bottom: 0, background: 'rgba(16,185,129,0.04)' }}><span style={{ position: 'absolute', bottom: 6, left: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(16,185,129,0.4)' }}>SAFE ZONE</span></div>
+            <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#F3F4F6' }} />
+            <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: '#F3F4F6' }} />
+            {/* Dots */}
+            {RISK_MATRIX_ASSETS.map((a, i) => (
+              <div key={i} onMouseEnter={() => setMatrixTooltip(a)} onMouseLeave={() => setMatrixTooltip(null)}
+                style={{ position: 'absolute', left: a.x + '%', bottom: a.y + '%', width: a.r * 2, height: a.r * 2, borderRadius: '50%', background: (matrixColors[a.status] || '#999') + 'CC', border: `2px solid ${matrixColors[a.status] || '#999'}`, cursor: 'pointer', transform: 'translate(-50%, 50%)', transition: 'transform 0.15s', zIndex: matrixTooltip?.domain === a.domain ? 10 : 1, ...(matrixTooltip?.domain === a.domain ? { transform: 'translate(-50%, 50%) scale(1.4)' } : {}) }} />
+            ))}
+            {/* Axes */}
+            <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>Likelihood of Quantum Attack →</div>
+            <div style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%) rotate(-90deg)', fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', whiteSpace: 'nowrap' }}>Business Impact →</div>
+            {/* Tooltip */}
+            {matrixTooltip && (
+              <div style={{ position: 'absolute', top: 8, right: 8, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 20, minWidth: 200 }}>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: '#111827' }}>{matrixTooltip.domain}</div>
+                <div style={{ marginTop: 4 }}><Badge type={matrixTooltip.status} /></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', marginTop: 8 }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Likelihood:</span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151' }}>{matrixTooltip.x}%</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Impact:</span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151' }}>{matrixTooltip.y}%</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <div className="card">
-                <div style={{ marginBottom: 14 }}><SectionTitle>Risk Matrix</SectionTitle></div>
-                <Shimmer h={280} label="2×2 Likelihood vs Impact Scatter" />
-            </div>
-            <div className="card">
-                <SectionTitle>Top Critical Assets</SectionTitle>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {[
-                        { r: "1", d: "vpn.pnbindia.in", bg: "#EF4444", w: "100%", b: "critical" },
-                        { r: "2", d: "api.pnbindia.in", bg: "#EF4444", w: "90%", b: "critical" },
-                        { r: "3", d: "payments.pnbindia.in", bg: "#EF4444", w: "85%", b: "critical" },
-                        { r: "4", d: "trade.pnbindia.in", bg: "#F97316", w: "70%", b: "high" },
-                        { r: "5", d: "netbanking.pnbindia.in", bg: "#F97316", w: "65%", b: "high" }
-                    ].map((a, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F9FAFB' }}>
-                            <div style={{ width: 28, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 800, color: '#E5E7EB' }}>{a.r}</div>
-                            <div style={{ flex: 1, fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{a.d}</div>
-                            <div style={{ width: 80, height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: a.w, background: a.bg }} />
-                            </div>
-                            <Badge type={a.b} />
-                        </div>
-                    ))}
+        {/* Top Critical Assets */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Top Critical Assets</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#4F46E5', cursor: 'pointer' }} onClick={() => nav('discovery')}>View all →</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {TOP_CRITICAL_ASSETS.map((a, i) => (
+              <div key={i} onClick={() => nav('tls-analyzer')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: i < TOP_CRITICAL_ASSETS.length - 1 ? '1px solid #F9FAFB' : 'none', cursor: 'pointer', borderRadius: 8, transition: 'background 0.1s' }} onMouseOver={e => e.currentTarget.style.background = '#FAFAFA'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                <div style={{ width: 24, textAlign: 'right', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 800, color: '#E5E7EB' }}>{a.rank}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.domain}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>{a.exposure}</div>
                 </div>
-            </div>
+                <div style={{ width: 64, height: 3, background: '#F3F4F6', borderRadius: 1.5, flexShrink: 0 }}>
+                  <div style={{ width: barsAnimated ? a.score + '%' : '0%', height: '100%', background: getScoreColor(a.score), borderRadius: 1.5, transition: `width 800ms ease-out ${i * 80}ms` }} />
+                </div>
+                <Badge type={a.status} />
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280' }}>36 critical · 72 high risk</span>
+            <button onClick={() => nav('remediation')} style={{ background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 6, padding: '5px 12px', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Remediate All →</button>
+          </div>
         </div>
+      </div>
+    </>
+  );
+
+  const renderAlgorithmAnalysis = () => (
+    <div key="algo" className="page-animate">
+      <div style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', gap: 12 }}>
+        <Info size={20} color="#4F46E5" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#111827' }}>Quantum Algorithm Vulnerability Analysis</div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280', marginTop: 2 }}>Shows which cryptographic algorithms are vulnerable to Shor's Algorithm (key systems) and Grover's Algorithm (symmetric systems)</div>
+        </div>
+      </div>
+      <div className="card" style={{ padding: 0, marginBottom: 20 }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead><tr><th>ALGORITHM</th><th>VULNERABLE TO SHOR'S</th><th>VULNERABLE TO GROVER'S</th><th>NIST RECOMMENDATION</th><th>ACTION</th></tr></thead>
+            <tbody>
+              {ALGO_VULN_TABLE.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: '#374151' }}>{r.algo}</td>
+                  <td><div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{r.shors ? <><XCircle size={18} color="#DC2626" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#DC2626' }}>YES</span></> : <><CheckCircle size={18} color="#10B981" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#10B981' }}>NO</span></>}</div></td>
+                  <td><div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{r.grovers ? <><XCircle size={18} color="#DC2626" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#DC2626' }}>YES</span></> : <><CheckCircle size={18} color="#10B981" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#10B981' }}>NO</span></>}</div></td>
+                  <td style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: r.nistrec.startsWith('Replace') ? '#DC2626' : r.nistrec.startsWith('Upgrade') || r.nistrec.startsWith('Use') ? '#F59E0B' : '#10B981' }}>{r.nistrec}</td>
+                  <td>{r.urgent ? <span style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 999, padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600 }}>Immediate</span> : <span style={{ background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', borderRadius: 999, padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600 }}>Acceptable</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Algorithms by Quantum Safety</div>
+          <div style={{ position: 'relative' }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart><Pie data={[{ name: 'Vulnerable', value: 210 }, { name: 'Safe', value: 37 }]} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" startAngle={90} endAngle={-270} animationDuration={800}><Cell fill="#EF4444" /><Cell fill="#10B981" /></Pie><Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12 }} /></PieChart>
+            </ResponsiveContainer>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, color: '#EF4444' }}>15%</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>PQC Ready</div>
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Key Exchange Methods in Use</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={KEY_EXCHANGE_DIST_RISK} layout="vertical" margin={{ top: 0, right: 20, left: 80, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+              <XAxis type="number" tick={{ fontFamily: 'Inter', fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontFamily: 'JetBrains Mono', fontSize: 10, fill: '#374151' }} axisLine={false} tickLine={false} width={75} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12 }} />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={14}>{KEY_EXCHANGE_DIST_RISK.map((e, i) => <Cell key={i} fill={e.color} fillOpacity={0.85} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
-);
+  );
+
+  const renderAssetRanking = () => {
+    const sorted = [...ALL_CBOM_COMPONENTS].sort((a, b) => b.riskScore - a.riskScore);
+    const filt = rankSearch.trim() ? sorted.filter(c => c.asset.toLowerCase().includes(rankSearch.toLowerCase()) || c.id.toLowerCase().includes(rankSearch.toLowerCase())) : sorted;
+    const perPage = 15; const tp = Math.ceil(filt.length / perPage); const pd = filt.slice((rankPage - 1) * perPage, rankPage * perPage);
+    const getRankColor = (r) => { if (r <= 10) return '#EF4444'; if (r <= 36) return '#F97316'; if (r <= 108) return '#F59E0B'; return '#9CA3AF'; };
+    return (
+      <div key="ranking" className="page-animate">
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>All Assets — Risk Ranked</span>
+              <span style={{ background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 999, fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, padding: '3px 10px' }}>{filt.length} assets</span>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} color="#9CA3AF" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 10, pointerEvents: 'none' }} />
+              <input type="text" placeholder="Search assets..." value={rankSearch} onChange={e => { setRankSearch(e.target.value); setRankPage(1); }} style={{ width: 220, paddingLeft: 34 }} />
+            </div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table><thead><tr><th style={{ width: 60 }}>RANK</th><th>ASSET</th><th style={{ width: 80 }}>TYPE</th><th style={{ width: 80 }}>TLS VER</th><th style={{ width: 160 }}>ALGORITHM</th><th style={{ width: 100, textAlign: 'right' }}>RISK SCORE</th><th style={{ width: 120 }}>STATUS</th><th style={{ width: 90 }}>ACTION</th></tr></thead>
+              <tbody>{pd.map((c, i) => { const rank = (rankPage - 1) * perPage + i + 1; return (
+                <tr key={c.id}><td style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: getRankColor(rank) }}>{rank}</td><td style={{ fontWeight: 600, color: '#111827' }}>{c.asset}</td><td>{c.type}</td><td><span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, background: c.tlsVer === '1.3' ? '#ECFDF5' : c.tlsVer === '1.2' ? '#FFFBEB' : '#FEF2F2', color: c.tlsVer === '1.3' ? '#059669' : c.tlsVer === '1.2' ? '#D97706' : '#DC2626', border: `1px solid ${c.tlsVer === '1.3' ? '#A7F3D0' : c.tlsVer === '1.2' ? '#FDE68A' : '#FECACA'}`, borderRadius: 999, padding: '2px 8px' }}>{c.tlsVer}</span></td><td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>{c.algorithm}</td><td style={{ textAlign: 'right', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 800, color: getScoreColor(c.riskScore) }}>{c.riskScore}</td><td><Badge type={c.status} /></td><td><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#4F46E5', cursor: 'pointer' }} onClick={() => nav('tls-analyzer')}>Analyze →</span></td></tr>
+              ); })}</tbody>
+            </table>
+          </div>
+          <div style={{ padding: '14px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>Showing {(rankPage-1)*perPage+1}–{Math.min(rankPage*perPage,filt.length)} of {filt.length}</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setRankPage(p => Math.max(1, p-1))} disabled={rankPage===1} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: rankPage===1?'not-allowed':'pointer', opacity: rankPage===1?0.4:1 }}><ChevronLeft size={14} color="#6B7280" /></button>
+              {Array.from({ length: Math.min(tp, 5) }, (_, i) => i + 1).map(p => <button key={p} onClick={() => setRankPage(p)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: rankPage===p?'#4F46E5':'#F9FAFB', color: rankPage===p?'#fff':'#6B7280', border: rankPage===p?'none':'1px solid #E5E7EB', borderRadius: 6, fontFamily: "'Inter', sans-serif", fontSize: 12, cursor: 'pointer' }}>{p}</button>)}
+              {tp > 5 && <button style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, fontFamily: "'Inter', sans-serif", fontSize: 12 }}>...</button>}
+              <button onClick={() => setRankPage(p => Math.min(tp, p+1))} disabled={rankPage===tp} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: rankPage===tp?'not-allowed':'pointer', opacity: rankPage===tp?0.4:1 }}><ChevronRight size={14} color="#6B7280" /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <PageHeader title="Quantum Risk Assessment" subtitle="Organization-wide quantum vulnerability scoring and HNDL exposure analysis"
+        actions={<><button className="btn-ghost" onClick={() => setShowConfigModal(true)}>Configure Parameters</button><button className="btn-primary" onClick={handleGenerateReport} disabled={reportGenerating}>{reportGenerating ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</> : <>↓ Risk Report</>}</button></>} />
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E5E7EB', marginBottom: 20 }}>
+        <button style={tabStyle('overview')} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button style={tabStyle('algorithm-analysis')} onClick={() => setActiveTab('algorithm-analysis')}>Algorithm Analysis</button>
+        <button style={tabStyle('asset-ranking')} onClick={() => setActiveTab('asset-ranking')}>Asset Ranking <span style={{ background: '#F3F4F6', color: '#6B7280', borderRadius: 999, padding: '1px 6px', fontFamily: "'Inter', sans-serif", fontSize: 10, marginLeft: 4 }}>247</span></button>
+      </div>
+
+      {activeTab === 'overview' && renderOverview()}
+      {activeTab === 'algorithm-analysis' && renderAlgorithmAnalysis()}
+      {activeTab === 'asset-ranking' && renderAssetRanking()}
+
+      {/* Config Modal */}
+      {showConfigModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowConfigModal(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 480, boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 20 }}>Configure Risk Parameters</div>
+            {[['CRQC Emergence Year', <input type="number" value={configCrqc} onChange={e => setConfigCrqc(Number(e.target.value))} min={2028} max={2040} style={{ width: '100%' }} />],
+              ['Sensitivity Level', <select style={{ width: '100%' }}><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select>],
+              ['Include Internal Assets', <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 36, height: 20, borderRadius: 10, background: '#4F46E5', cursor: 'pointer', padding: 2 }}><div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', marginLeft: 16 }} /></div><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151' }}>Enabled</span></div>],
+              ['Risk Model', <select style={{ width: '100%' }}><option>Conservative</option><option selected>Standard</option><option>Aggressive</option></select>]
+            ].map(([label, input], i) => (
+              <div key={i} style={{ marginBottom: 16 }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</div>
+                {input}
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn-ghost" onClick={() => setShowConfigModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={() => { setCrqcYear(configCrqc); setShowConfigModal(false); showToast('Parameters applied'); }}>Apply Parameters</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.2s ease-out', zIndex: 1000 }}>
+          <CheckCircle size={16} color="#10B981" />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151', fontWeight: 500 }}>{toast}</span>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+};
+
+
+
 
 const RemediationPage = () => (
     <div>
