@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search,
-    Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity,
-    Globe, Code, Network, Server, LayoutDashboard, TrendingDown, PenLine, SlidersHorizontal, Hash, GitBranch, Clock
+    Bell, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Zap, CheckCircle, AlertTriangle, XCircle, Activity,
+    Globe, Code, Network, Server, LayoutDashboard, TrendingDown, PenLine, SlidersHorizontal, Hash, GitBranch, Clock,
+    Download, ExternalLink, Users, Copy, Check, X
 } from 'lucide-react';
 
 const BADGE_STYLES = {
@@ -781,149 +782,545 @@ const RiskPage = () => (
     </div>
 );
 
-const RemediationPage = () => (
+// ─── Remediation data: 8 seed + 139 generated = 147 items ───
+const REMEDIATION_SEED = [
+  { id: 'REM-001', priority: 1, domain: 'vpn.pnbindia.in', type: 'VPN', status: 'critical', vulnerability: 'RSA Key Exchange', vulnDetail: "RSA key exchange is completely vulnerable to Shor's Algorithm on cryptographically relevant quantum computers.", complexity: 'Easy', taskStatus: 'pending', estTime: '2–4 hours', skillLevel: 'SysAdmin', assignee: null, configPatch: `# nginx.conf — Add PQC key exchange\nssl_ecdh_curve X25519Kyber768:prime256v1;\nssl_protocols TLSv1.3;\nssl_prefer_server_ciphers off;\nssl_ciphers TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256;`, steps: ['Update OpenSSL to version 3.x with OQS provider', 'Configure ssl_ecdh_curve to X25519Kyber768:prime256v1', 'Set ssl_protocols to TLSv1.3 only', 'Disable ssl_prefer_server_ciphers', 'Test with openssl s_client -connect vpn.pnbindia.in:4500', 'Verify ML-KEM-768 handshake in scan results'], impact: 'Eliminates primary quantum attack vector', nistrefs: ['FIPS 203', 'SP 800-208'] },
+  { id: 'REM-002', priority: 2, domain: 'api.pnbindia.in', type: 'API', status: 'critical', vulnerability: 'TLS 1.2 Active', vulnDetail: 'TLS 1.2 supports cipher suites vulnerable to quantum attacks. TLS 1.3 is required for quantum transition readiness.', complexity: 'Medium', taskStatus: 'in-progress', estTime: '4–8 hours', skillLevel: 'SysAdmin', assignee: 'Raj Kumar', configPatch: `# nginx.conf — Force TLS 1.3\nssl_protocols TLSv1.3;\nssl_session_cache shared:SSL:10m;\nssl_session_timeout 1d;\n# Add HSTS\nadd_header Strict-Transport-Security \n  "max-age=31536000; includeSubDomains" always;`, steps: ['Verify OpenSSL version supports TLS 1.3', 'Remove TLSv1.2 from ssl_protocols directive', 'Update ssl_ciphers for TLS 1.3 only', 'Restart nginx: sudo systemctl restart nginx', 'Verify with: openssl s_client -tls1_3 -connect api.pnbindia.in:443', 'Monitor for client compatibility issues for 48 hours'], impact: 'Forces modern protocol with better cipher negotiation', nistrefs: ['NIST SP 800-52 Rev 2'] },
+  { id: 'REM-003', priority: 3, domain: 'payments.pnbindia.in', type: 'API', status: 'critical', vulnerability: 'RSA-2048 Cert', vulnDetail: "RSA-2048 certificate signature is broken by Shor's Algorithm. Must migrate to ML-DSA or SLH-DSA.", complexity: 'Easy', taskStatus: 'pending', estTime: '2–4 hours', skillLevel: 'Security Eng.', assignee: null, configPatch: `# Generate ML-DSA-65 certificate\nopenssl genpkey -algorithm mldsa65 \\\n  -out payments_mldsa65.key\nopenssl req -new -key payments_mldsa65.key \\\n  -out payments_mldsa65.csr \\\n  -subj "/CN=payments.pnbindia.in"\n# Submit CSR to PQC-capable CA`, steps: ['Generate ML-DSA-65 private key using OQS OpenSSL', 'Create CSR with correct SAN entries', 'Submit to PNB internal PQC CA or PQC-capable public CA', 'Install signed certificate in nginx/apache', 'Update certificate monitoring for new format', 'Verify with QuantumShield TLS Analyzer'], impact: 'Eliminates certificate signature vulnerability', nistrefs: ['FIPS 204'] },
+  { id: 'REM-004', priority: 4, domain: 'netbanking.pnbindia.in', type: 'Web Server', status: 'critical', vulnerability: 'Weak Cipher Suite', vulnDetail: 'Server supports TLS_RSA_AES_256_CBC_SHA256 which uses RSA key exchange with no forward secrecy.', complexity: 'Medium', taskStatus: 'pending', estTime: '3–6 hours', skillLevel: 'SysAdmin', assignee: null, configPatch: `# Remove weak cipher suites\nssl_ciphers 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE+AESGCM';\nssl_prefer_server_ciphers on;\n# Disable CBC mode ciphers\nssl_ciphers '!CBC:!RC4:!NULL:!aNULL:!eNULL';`, steps: ['Audit current cipher suite list with testssl.sh', 'Remove all CBC mode ciphers', 'Remove all RSA key exchange ciphers', 'Keep only ECDHE + AEAD cipher suites', 'Test for client compatibility', 'Re-scan with QuantumShield to verify'], impact: 'Removes weak cipher fallback vectors', nistrefs: ['NIST SP 800-52 Rev 2'] },
+  { id: 'REM-005', priority: 5, domain: 'sso.pnbindia.in', type: 'API', status: 'critical', vulnerability: 'No PFS', vulnDetail: 'Server lacks Perfect Forward Secrecy. All past sessions can be decrypted if private key is compromised.', complexity: 'Easy', taskStatus: 'pending', estTime: '1–2 hours', skillLevel: 'SysAdmin', assignee: null, configPatch: `# Enable Perfect Forward Secrecy\nssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256';\nssl_ecdh_curve secp384r1;\nssl_prefer_server_ciphers on;\n# Disable session tickets (breaks PFS)\nssl_session_tickets off;`, steps: ['Disable ssl_session_tickets', 'Update ssl_ciphers to ECDHE-only suites', 'Set ssl_ecdh_curve to secp384r1 minimum', 'Test PFS with ssllabs.com or testssl.sh', 'Verify —PFS flag in scan output'], impact: 'Protects all future sessions from compromise', nistrefs: ['NIST SP 800-52 Rev 2'] },
+  { id: 'REM-006', priority: 6, domain: 'mobile.pnbindia.in', type: 'Web Server', status: 'high', vulnerability: 'ECDH Key Exchange', vulnDetail: "Elliptic curve Diffie-Hellman is broken by Shor's Algorithm on quantum computers.", complexity: 'Hard', taskStatus: 'pending', estTime: '8–16 hours', skillLevel: 'Security Eng.', assignee: null, configPatch: `# Replace ECDH with ML-KEM hybrid\nssl_ecdh_curve X25519Kyber768:prime256v1;\nssl_protocols TLSv1.3;\n# Requires OpenSSL 3.x + OQS provider\n# Download: github.com/open-quantum-safe/oqs-provider`, steps: ['Install OpenSSL 3.x with OQS provider', 'Build nginx with updated OpenSSL', 'Configure X25519Kyber768 as preferred curve', 'Test hybrid handshake with Chrome/Firefox nightly', 'Monitor mobile app compatibility', 'Roll out gradually (10% → 50% → 100%)', 'Full validation with QuantumShield scanner'], impact: 'Replaces quantum-vulnerable key exchange', nistrefs: ['FIPS 203', 'IETF Draft hybrid-kem'] },
+  { id: 'REM-007', priority: 7, domain: 'trade.pnbindia.in', type: 'Web Server', status: 'high', vulnerability: 'TLS 1.1 Detected', vulnDetail: 'TLS 1.1 is deprecated by RFC 8996. Contains known vulnerabilities including BEAST and POODLE.', complexity: 'Easy', taskStatus: 'fixed', estTime: '30 min', skillLevel: 'SysAdmin', assignee: 'Priya Sharma', configPatch: `# Already applied:\nssl_protocols TLSv1.2 TLSv1.3;\n# TLS 1.0 and 1.1 disabled`, steps: ['Remove TLSv1.1 from ssl_protocols ✓', 'Restart web server ✓', 'Verify with scanner ✓'], impact: 'TLS 1.1 successfully disabled', nistrefs: ['RFC 8996'] },
+  { id: 'REM-008', priority: 8, domain: 'forex.pnbindia.in', type: 'Web Server', status: 'medium', vulnerability: 'AES-128 Usage', vulnDetail: "AES-128 provides only 64-bit effective security against Grover's Algorithm on quantum computers.", complexity: 'Medium', taskStatus: 'pending', estTime: '2–4 hours', skillLevel: 'SysAdmin', assignee: null, configPatch: `# Upgrade to AES-256\nssl_ciphers 'TLS_AES_256_GCM_SHA384:ECDHE-RSA-AES256-GCM-SHA384';\n# Remove AES-128 entries from cipher list`, steps: ['Update cipher list to prefer AES-256', 'Remove AES-128 cipher suites', 'Test with openssl ciphers command', 'Verify no AES-128 in scan results'], impact: "Doubles effective key strength against Grover's", nistrefs: ['NIST SP 800-131A Rev 2'] },
+];
+
+const VULN_POOL = ['RSA Key Exchange', 'ECDH Key Exchange', 'TLS 1.2 Active', 'RSA-2048 Cert', 'Weak Cipher Suite', 'No PFS', 'AES-128 Usage', 'TLS 1.1 Detected', 'OCSP Disabled', 'No HSTS', 'DHE Key Exchange', 'SHA-1 Signature', 'Certificate Expiring', 'No Cert Transparency'];
+const DOMAIN_PREFIXES = ['branch', 'region', 'gateway', 'app', 'cdn', 'static', 'auth', 'mail', 'db', 'backup', 'dev', 'staging', 'uat', 'corp', 'intranet'];
+const TYPES = ['VPN', 'API', 'Web Server'];
+
+function buildRemediationItem(idx, overrides = {}) {
+  const statusOrder = ['critical', 'high', 'medium'];
+  const status = statusOrder[Math.floor(idx / 41) % 3];
+  const vuln = VULN_POOL[idx % VULN_POOL.length];
+  const complexityOrder = ['Easy', 'Easy', 'Medium', 'Medium', 'Hard'];
+  const complexity = complexityOrder[idx % 5];
+  const prefix = DOMAIN_PREFIXES[idx % DOMAIN_PREFIXES.length];
+  const domain = `${prefix}${Math.floor(idx / DOMAIN_PREFIXES.length) + 1}.pnbindia.in`;
+  return {
+    id: `REM-${String(idx + 1).padStart(3, '0')}`,
+    priority: idx + 1,
+    domain,
+    type: TYPES[idx % 3],
+    status,
+    vulnerability: vuln,
+    vulnDetail: `${vuln} requires remediation for quantum-safe posture. Apply PQC or TLS 1.3 best practices.`,
+    complexity,
+    taskStatus: overrides.taskStatus || 'pending',
+    estTime: complexity === 'Hard' ? '8–16 hours' : complexity === 'Medium' ? '3–6 hours' : '2–4 hours',
+    skillLevel: complexity === 'Hard' ? 'Security Eng.' : 'SysAdmin',
+    assignee: overrides.assignee ?? null,
+    configPatch: `# Remediation for ${domain}\n# Address: ${vuln}\nssl_protocols TLSv1.3;\nssl_ciphers TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256;`,
+    steps: ['Audit current configuration', 'Apply PQC or TLS 1.3 changes', 'Restart services', 'Verify with scanner', 'Update documentation'],
+    impact: 'Improves quantum readiness',
+    nistrefs: ['FIPS 203', 'NIST SP 800-52 Rev 2'],
+    ...overrides,
+  };
+}
+
+const _genFixed = new Set([8, 11, 14, 17, 19, 21, 27, 28, 31, 35, 38, 42, 46, 49, 50, 54, 56, 63, 65, 70, 74, 77, 83, 84, 91, 95, 98, 104, 105, 112, 115, 119, 125, 126, 133, 136, 140, 145]);
+const _genInProgress = new Set([9, 20, 30, 41, 51, 61, 72, 82, 93, 103, 111, 124, 135]);
+function getAllRemediationItems() {
+  const out = [...REMEDIATION_SEED];
+  for (let i = 8; i < 147; i++) {
+    let taskStatus = 'pending';
+    if (_genFixed.has(i)) taskStatus = 'fixed';
+    else if (_genInProgress.has(i)) taskStatus = 'in-progress';
+    out.push(buildRemediationItem(i, { taskStatus }));
+  }
+  return out;
+}
+
+const ALL_REMEDIATION_ITEMS = getAllRemediationItems();
+
+const PQC_ALGORITHMS = [
+  { id: 1, name: 'ML-KEM-768 (Kyber)', purpose: 'Key Encapsulation', fips: 'FIPS 203', icon: 'Lock', iconBg: '#EEF2FF', iconColor: '#4F46E5', description: 'NIST-standardized key encapsulation mechanism. Replaces RSA and ECDH for key exchange.', replaces: 'RSA, ECDH, DHE', securityLevel: 'NIST Level 3', keySize: '1184 bytes (public)', standardDate: 'Aug 2024', useCase: 'TLS key exchange, VPN tunnels' },
+  { id: 2, name: 'ML-DSA-65 (Dilithium)', purpose: 'Digital Signatures', fips: 'FIPS 204', icon: 'PenLine', iconBg: '#F5F3FF', iconColor: '#7C3AED', description: 'NIST-standardized digital signature algorithm. Replaces RSA and ECDSA for certificate signing.', replaces: 'RSA-PKCS1, ECDSA', securityLevel: 'NIST Level 3', keySize: '1952 bytes (public)', standardDate: 'Aug 2024', useCase: 'Certificate signing, authentication' },
+  { id: 3, name: 'SLH-DSA (SPHINCS+)', purpose: 'Stateless Signatures', fips: 'FIPS 205', icon: 'ShieldCheck', iconBg: '#ECFDF5', iconColor: '#059669', description: 'Hash-based stateless signature scheme. Conservative choice based on well-understood security.', replaces: 'RSA (signing), ECDSA', securityLevel: 'NIST Level 3', keySize: '32 bytes (public)', standardDate: 'Aug 2024', useCase: 'Code signing, long-term certificates' },
+];
+
+const PROGRESS_TOTAL = 247;
+const TEAM_MEMBERS = [
+  { value: '', label: '— Select team member —' },
+  { value: 'raj', label: 'Raj Kumar — Senior Security Engineer' },
+  { value: 'priya', label: 'Priya Sharma — Systems Administrator' },
+  { value: 'amit', label: 'Amit Patel — Security Analyst' },
+  { value: 'deepa', label: 'Deepa Singh — Infrastructure Engineer' },
+  { value: 'vikram', label: 'Vikram Nair — DevSecOps Engineer' },
+];
+
+const RemediationPage = ({ nav }) => {
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedItem, setSelectedItem] = useState(ALL_REMEDIATION_ITEMS[0]);
+  const [taskStatuses, setTaskStatuses] = useState(() => {
+    const map = {};
+    ALL_REMEDIATION_ITEMS.forEach(item => { map[item.id] = item.taskStatus; });
+    return map;
+  });
+  const [assignees, setAssignees] = useState(() => {
+    const map = {};
+    ALL_REMEDIATION_ITEMS.forEach(item => { if (item.assignee) map[item.id] = item.assignee; });
+    return map;
+  });
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [assignForm, setAssignForm] = useState({ task: '', member: '', priority: 'Critical', dueDate: '', notes: '', email: true });
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [progressAnimated, setProgressAnimated] = useState(false);
+  const [expandedStep, setExpandedStep] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState('priority');
+  const [showCompleted, setShowCompleted] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [confetti, setConfetti] = useState(false);
+  const [justFixedId, setJustFixedId] = useState(null);
+
+  const filteredItems = useMemo(() => {
+    let items = ALL_REMEDIATION_ITEMS;
+    if (activeFilter !== 'all') items = items.filter(i => i.status === activeFilter);
+    if (!showCompleted) items = items.filter(i => taskStatuses[i.id] !== 'fixed');
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      items = items.filter(i => i.domain.includes(q) || i.vulnerability.toLowerCase().includes(q));
+    }
+    return items.sort((a, b) => {
+      if (sortBy === 'priority') return a.priority - b.priority;
+      const order = { Easy: 0, Medium: 1, Hard: 2 };
+      return (order[a.complexity] ?? 0) - (order[b.complexity] ?? 0);
+    });
+  }, [activeFilter, taskStatuses, showCompleted, searchText, sortBy]);
+
+  const counts = useMemo(() => ({
+    all: ALL_REMEDIATION_ITEMS.length,
+    critical: ALL_REMEDIATION_ITEMS.filter(i => i.status === 'critical').length,
+    high: ALL_REMEDIATION_ITEMS.filter(i => i.status === 'high').length,
+    medium: ALL_REMEDIATION_ITEMS.filter(i => i.status === 'medium').length,
+  }), []);
+
+  useEffect(() => { const t = setTimeout(() => setProgressAnimated(true), 300); return () => clearTimeout(t); }, []);
+  useEffect(() => {
+    if (filteredItems.length > 0 && !filteredItems.find(i => i.id === selectedItem?.id)) setSelectedItem(filteredItems[0]);
+  }, [activeFilter, filteredItems]);
+  useEffect(() => {
+    if (assignModalOpen && !assignForm.dueDate) {
+      const d = new Date(); d.setDate(d.getDate() + 14);
+      setAssignForm(f => ({ ...f, dueDate: d.toISOString().slice(0, 10) }));
+    }
+  }, [assignModalOpen]);
+
+  const liveFixed = useMemo(() => Object.values(taskStatuses).filter(s => s === 'fixed').length, [taskStatuses]);
+  const liveInProgress = useMemo(() => Object.values(taskStatuses).filter(s => s === 'in-progress').length, [taskStatuses]);
+  const livePending = useMemo(() => Object.values(taskStatuses).filter(s => s === 'pending').length, [taskStatuses]);
+  const livePercentage = ((liveFixed / PROGRESS_TOTAL) * 100).toFixed(1);
+  const milestones = [
+    { label: '25% Quick Wins', pct: 25 },
+    { label: '50% Core Systems', pct: 50 },
+    { label: '75% Deep Infra', pct: 75 },
+    { label: '100% Fully Safe', pct: 100 },
+  ];
+
+  const updateTaskStatus = useCallback((id, newStatus) => {
+    setTaskStatuses(prev => ({ ...prev, [id]: newStatus }));
+    if (newStatus === 'fixed') {
+      setJustFixedId(id);
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 600);
+      const item = ALL_REMEDIATION_ITEMS.find(i => i.id === id);
+      setToast({ type: 'fixed', message: `${item?.domain ?? id} marked as fixed`, id: Date.now() });
+      setTimeout(() => setToast(null), 3000);
+      const next = filteredItems.find(i => i.id !== id && taskStatuses[i.id] !== 'fixed');
+      if (next) setTimeout(() => setSelectedItem(next), 400);
+    }
+  }, [filteredItems, taskStatuses]);
+
+  const handleExportPlan = useCallback(() => {
+    const headers = 'Priority,Domain,Type,Vulnerability,Complexity,Status,Est Time,Skill Level,Assignee,NIST Refs';
+    const rows = ALL_REMEDIATION_ITEMS.map(i => {
+      const status = taskStatuses[i.id] ?? i.taskStatus;
+      return [i.priority, i.domain, i.type, i.vulnerability, i.complexity, status, i.estTime, i.skillLevel, assignees[i.id] ?? i.assignee ?? '', (i.nistrefs || []).join('; ')].map(c => `"${String(c).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pnb-remediation-plan.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setToast({ type: 'export', message: `Plan exported — ${ALL_REMEDIATION_ITEMS.length} items`, id: Date.now() });
+    setTimeout(() => setToast(null), 3000);
+  }, [taskStatuses, assignees]);
+
+  const handleAssign = useCallback(() => {
+    const target = assignTarget || (assignForm.task ? ALL_REMEDIATION_ITEMS.find(i => i.id === assignForm.task) : null);
+    const memberLabel = TEAM_MEMBERS.find(m => m.value === assignForm.member)?.label;
+    const name = memberLabel && memberLabel !== TEAM_MEMBERS[0].label ? memberLabel.split(' — ')[0] : null;
+    if (target && name) {
+      setAssignees(prev => ({ ...prev, [target.id]: name }));
+      setAssignModalOpen(false);
+      setAssignTarget(null);
+      setAssignForm({ task: '', member: '', priority: 'Critical', dueDate: '', notes: '', email: true });
+      setToast({ type: 'assign', message: 'Task assigned', id: Date.now() });
+      setTimeout(() => setToast(null), 3000);
+    } else if (!target && assignForm.member && memberLabel && memberLabel !== TEAM_MEMBERS[0].label) {
+      const firstPending = ALL_REMEDIATION_ITEMS.find(i => taskStatuses[i.id] === 'pending');
+      if (firstPending) {
+        const name = memberLabel.split(' — ')[0];
+        setAssignees(prev => ({ ...prev, [firstPending.id]: name }));
+        setAssignModalOpen(false);
+        setAssignForm({ task: '', member: '', priority: 'Critical', dueDate: '', notes: '', email: true });
+        setToast({ type: 'assign', message: 'Task assigned', id: Date.now() });
+        setTimeout(() => setToast(null), 3000);
+      }
+    }
+  }, [assignTarget, assignForm, taskStatuses]);
+
+  const displayItems = filteredItems.slice(0, 50);
+  const selectedStatus = selectedItem ? (taskStatuses[selectedItem.id] ?? selectedItem.taskStatus) : null;
+  const selectedAssignee = selectedItem ? (assignees[selectedItem.id] ?? selectedItem.assignee) : null;
+
+  return (
     <div>
-        <PageHeader
-            title="Remediation Center"
-            subtitle="Prioritized action plan to achieve quantum-safe cryptographic posture across all assets"
-            actions={<><button className="btn-ghost">Assign Tasks</button><button className="btn-primary">Export Plan</button></>}
-        />
+      <PageHeader
+        title="Remediation Center"
+        subtitle="Prioritized action plan to achieve quantum-safe cryptographic posture across all assets"
+        actions={
+          <>
+            <button className="btn-ghost" onClick={() => { setAssignTarget(null); setAssignModalOpen(true); }}>Assign Tasks</button>
+            <button className="btn-primary" onClick={handleExportPlan}>Export Plan</button>
+          </>
+        }
+      />
 
-        <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'center', marginBottom: 20 }}>
-            <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Overall Remediation Progress</span>
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>38 of 247 assets</span>
-                </div>
-                <div style={{ height: 10, background: '#F3F4F6', borderRadius: 5, overflow: 'hidden', marginTop: 10 }}>
-                    <div style={{ height: '100%', width: '15.4%', background: 'linear-gradient(90deg, #4F46E5, #06B6D4)', borderRadius: 5, boxShadow: '0 0 8px rgba(79,70,229,0.4)' }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>
-                    <span>25% Quick Wins</span><span>50% Core Systems</span><span>75% Deep Infra</span><span>100% Fully Safe</span>
-                </div>
+      {/* Progress card */}
+      <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Overall Remediation Progress</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginTop: 3 }}>{liveFixed} of {PROGRESS_TOTAL} assets remediated · In progress: {liveInProgress} · Pending: {livePending}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>{liveFixed} of {PROGRESS_TOTAL} assets</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: '#4F46E5' }}>{livePercentage}%</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Complete</div>
+          </div>
+        </div>
+        <div style={{ height: 10, background: '#F3F4F6', borderRadius: 5, overflow: 'visible', position: 'relative' }}>
+          <div style={{
+            height: '100%', borderRadius: 5, background: 'linear-gradient(90deg, #4F46E5, #06B6D4)', boxShadow: '0 0 8px rgba(79,70,229,0.4)',
+            width: progressAnimated ? `${livePercentage}%` : '0%', transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative',
+          }}>
+            <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: '#4F46E5', boxShadow: '0 0 0 3px rgba(79,70,229,0.25)' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, position: 'relative' }}>
+          {milestones.map((m, i) => (
+            <span key={i} style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: Number(livePercentage) >= m.pct ? 600 : 500, color: Number(livePercentage) >= m.pct ? '#4F46E5' : '#9CA3AF' }}>{m.label}</span>
+          ))}
+        </div>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', textAlign: 'center' }}>
+          {[
+            { label: 'FIXED', value: liveFixed, color: '#10B981' },
+            { label: 'IN PROGRESS', value: liveInProgress, color: '#4F46E5' },
+            { label: 'PENDING', value: livePending, color: '#9CA3AF' },
+            { label: 'EST. COMPLETION', value: 'Q3 2026', color: '#111827' },
+            { label: 'TIME SAVED', value: '142 hr', color: '#8B5CF6' },
+          ].map((s, i) => (
+            <div key={i}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, textTransform: 'uppercase', color: '#9CA3AF', marginTop: 2 }}>{s.label}</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 32, fontWeight: 800, color: '#4F46E5' }}>15.4%</div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Complete</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main: Queue | Fix guide */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.85fr', gap: 20, marginBottom: 20 }}>
+        {/* Left: Queue */}
+        <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 2 }}>
+                {['all', 'critical', 'high', 'medium'].map(f => (
+                  <button key={f} onClick={() => setActiveFilter(f)} style={{
+                    padding: '7px 14px', borderRadius: 8, fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: activeFilter === f ? 600 : 500, cursor: 'pointer', transition: 'background 0.12s',
+                    background: activeFilter === f ? '#4F46E5' : 'transparent', color: activeFilter === f ? 'white' : '#6B7280', border: 'none',
+                  }}>{f === 'all' ? `All (${counts.all})` : `${f.charAt(0).toUpperCase() + f.slice(1)} (${counts[f]})`}</button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ position: 'relative', width: 180 }}>
+                  <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+                  <input type="text" placeholder="Search..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: '100%', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, padding: '6px 12px 6px 28px', fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151' }} />
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={!showCompleted} onChange={() => setShowCompleted(!showCompleted)} /> Hide fixed
+                </label>
+              </div>
             </div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                  <th style={{ padding: '10px 20px', fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', width: 90, textAlign: 'left' }}>PRIORITY</th>
+                  <th style={{ padding: '10px 20px', fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left' }}>ASSET</th>
+                  <th style={{ padding: '10px 20px', fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', width: 160, textAlign: 'left' }}>VULNERABILITY</th>
+                  <th style={{ padding: '10px 20px', fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', width: 100, textAlign: 'left' }}>COMPLEXITY</th>
+                  <th style={{ padding: '10px 20px', fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', width: 110, textAlign: 'left' }}>STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayItems.map(item => {
+                  const status = taskStatuses[item.id] ?? item.taskStatus;
+                  const dotColor = status === 'fixed' ? '#10B981' : item.status === 'critical' ? '#EF4444' : item.status === 'high' ? '#F97316' : '#F59E0B';
+                  const isSelected = selectedItem?.id === item.id;
+                  return (
+                    <tr key={item.id} onClick={() => setSelectedItem(item)} style={{
+                      cursor: 'pointer', borderBottom: '1px solid #F9FAFB', transition: 'background 0.1s', background: isSelected ? '#EEF2FF' : 'white',
+                      borderLeft: isSelected ? '3px solid #4F46E5' : '3px solid transparent', opacity: status === 'fixed' ? 0.6 : 1,
+                    }}>
+                      <td style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: dotColor }}>{item.priority}</span>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{item.domain}</div>
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 999, padding: '2px 8px', color: '#6B7280' }}>{item.type}</span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: '#374151' }}>{item.vulnerability}</td>
+                      <td style={{ padding: '14px 16px', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: item.complexity === 'Easy' ? '#10B981' : item.complexity === 'Medium' ? '#F59E0B' : '#EF4444' }}>{item.complexity}</td>
+                      <td style={{ padding: '14px 20px' }} onClick={e => status === 'fixed' && e.stopPropagation()}>
+                        <Badge type={status}>{status === 'fixed' ? 'Fixed ✓' : status === 'in-progress' ? 'In Progress' : 'Pending'}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Showing {displayItems.length} of {activeFilter === 'all' ? counts.all : counts[activeFilter]} items</span>
+            {activeFilter !== 'all' && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#4F46E5', cursor: 'pointer' }} onClick={() => setActiveFilter('all')}>Clear filter</span>}
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20 }}>
-            {/* Left */}
-            <div className="card" style={{ padding: 0 }}>
-                <div style={{ padding: 20 }}>
-                    <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-                        {['All(147)', 'Critical(36)', 'High(72)', 'Medium(39)'].map((t, i) => (
-                            <div key={i} style={{
-                                padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 12,
-                                background: i === 0 ? '#EEF2FF' : 'transparent', color: i === 0 ? '#4F46E5' : '#6B7280', fontWeight: i === 0 ? 600 : 400
-                            }}>{t}</div>
-                        ))}
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>PRIORITY</th>
-                                    <th>ASSET</th>
-                                    <th>VULNERABILITY</th>
-                                    <th>COMPLEXITY</th>
-                                    <th>STATUS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[
-                                    { p: "1", c: "🔴", a: "vpn.pnbindia.in", v: "RSA Key Exchange", cx: "Easy", cxC: "#10B981", s: "pending" },
-                                    { p: "2", c: "🔴", a: "api.pnbindia.in", v: "TLS 1.2 Active", cx: "Medium", cxC: "#F59E0B", s: "in-progress" },
-                                    { p: "3", c: "🔴", a: "payments.pnbindia.in", v: "RSA-2048 Cert", cx: "Easy", cxC: "#10B981", s: "pending" },
-                                    { p: "4", c: "🟠", a: "netbanking.pnbindia.in", v: "Weak Cipher Suite", cx: "Medium", cxC: "#F59E0B", s: "pending" },
-                                    { p: "5", c: "🟠", a: "sso.pnbindia.in", v: "No PFS", cx: "Easy", cxC: "#10B981", s: "pending" },
-                                    { p: "6", c: "🟡", a: "mobile.pnbindia.in", v: "ECDH Key Exchange", cx: "Hard", cxC: "#EF4444", s: "pending" },
-                                    { p: "7", c: "🟡", a: "trade.pnbindia.in", v: "TLS 1.1 Detected", cx: "Easy", cxC: "#10B981", s: "fixed" },
-                                    { p: "8", c: "🟡", a: "forex.pnbindia.in", v: "AES-128 Usage", cx: "Medium", cxC: "#F59E0B", s: "pending" }
-                                ].map((r, i) => (
-                                    <tr key={i}>
-                                        <td><div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span>{r.c}</span> <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700 }}>{r.p}</span></div></td>
-                                        <td style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>{r.a}</td>
-                                        <td>{r.v}</td>
-                                        <td style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: r.cxC }}>{r.cx}</td>
-                                        <td><Badge type={r.s} /></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        {/* Right: Fix guide */}
+        {selectedItem && (
+          <div key={selectedItem.id} className="page-animate" style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: '#111827' }}>{selectedItem.domain}</span>
+                <Badge type={selectedItem.status} />
+              </div>
+              <ExternalLink size={16} color="#9CA3AF" style={{ cursor: 'pointer' }} onClick={() => nav && nav('tls-analyzer')} title="View in TLS Analyzer" />
             </div>
-
-            {/* Right */}
-            <div className="card">
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>vpn.pnbindia.in</span>
-                    <span style={{ marginLeft: 8 }}><Badge type="critical" /></span>
-                </div>
-
-                <div>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 6 }}>Vulnerability</div>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
-                        RSA key exchange is completely vulnerable to Shor's Algorithm on cryptographically relevant quantum computers.
-                    </div>
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 6 }}>Remediation Steps</div>
-                    <Shimmer h={70} label="Step-by-step instructions" />
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 6 }}>Configuration Patch</div>
-                    <div style={{ background: '#F8F9FC', border: '1px solid #E5E7EB', borderRadius: 8, padding: 14, overflowX: 'auto', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#4F46E5', lineHeight: 1.7 }}>
-                        <pre style={{ margin: 0 }}>
-                            # nginx.conf — Add PQC key exchange
-                            ssl_ecdh_curve X25519Kyber768:prime256v1;
-                            ssl_protocols TLSv1.3;
-                            ssl_prefer_server_ciphers off;
-                        </pre>
-                    </div>
-                </div>
-
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F3F4F6', display: 'flex', gap: 20 }}>
-                    {[
-                        { l: "Complexity", v: "Easy", c: "#10B981" },
-                        { l: "Est. Time", v: "2–4 hours", c: "#111827" },
-                        { l: "Skill Level", v: "SysAdmin", c: "#111827" }
-                    ].map((k, i) => (
-                        <div key={i}>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>{k.l}</div>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: k.c }}>{k.v}</div>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>VULNERABILITY</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151', lineHeight: 1.7 }}>{selectedItem.vulnDetail}</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>REMEDIATION STEPS</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {(selectedItem.steps || []).map((step, i) => {
+                    const isFixed = selectedStatus === 'fixed';
+                    const isExp = expandedStep === i;
+                    return (
+                      <div key={i} onClick={() => setExpandedStep(isExp ? null : i)} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 4px', borderBottom: '1px solid #F9FAFB', cursor: 'pointer', transition: 'background 0.1s', borderRadius: 6, background: isExp ? '#FAFAFA' : 'transparent' }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#EEF2FF', border: '1px solid #C7D2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, color: '#4F46E5', flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: isFixed ? '#9CA3AF' : '#374151', lineHeight: 1.5, textDecoration: isFixed ? 'line-through' : 'none' }}>{step}</span>
+                          {isFixed && <CheckCircle size={12} color="#10B981" style={{ marginLeft: 6, verticalAlign: 'middle' }} />}
+                          {isExp && <div style={{ background: '#F8F9FC', borderRadius: 6, padding: '8px 12px', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280', marginTop: 4 }}>Technical note: verify configuration and re-scan after applying.</div>}
                         </div>
-                    ))}
+                      </div>
+                    );
+                  })}
                 </div>
-
-                <button className="btn-primary" style={{ width: '100%', marginTop: 14, justifyContent: 'center' }}>Mark as In Progress</button>
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>CONFIGURATION PATCH</div>
+                <div style={{ background: '#F8F9FC', border: '1px solid #E5E7EB', borderRadius: 8, padding: '14px 16px', position: 'relative', overflowX: 'auto' }}>
+                  <pre style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedItem.configPatch}</pre>
+                  <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(selectedItem.configPatch); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 28, background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={copiedCode ? 'Copied!' : 'Copy'}>
+                    {copiedCode ? <Check size={13} color="#10B981" /> : <Copy size={13} color="#9CA3AF" />}
+                  </button>
+                  {copiedCode && <span style={{ position: 'absolute', top: -24, right: 8, fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#10B981', animation: 'fadeInUp 0.2s ease-out' }}>Copied!</span>}
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, background: '#F9FAFB', borderRadius: 8, padding: '12px 16px' }}>
+                <div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.08em', marginBottom: 4 }}>Complexity</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: selectedItem.complexity === 'Easy' ? '#10B981' : selectedItem.complexity === 'Medium' ? '#F59E0B' : '#EF4444' }}>{selectedItem.complexity}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.08em', marginBottom: 4 }}>Est. Time</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: '#111827' }}>{selectedItem.estTime}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.08em', marginBottom: 4 }}>Skill Level</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: '#4F46E5' }}>{selectedItem.skillLevel}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(selectedItem.nistrefs || []).map((ref, i) => (
+                  <span key={i} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#4F46E5', borderRadius: 999, padding: '4px 12px' }}>{ref}</span>
+                ))}
+              </div>
             </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 20 }}>
-            {[
-                { i: Lock, bg: "#EEF2FF", c: "#4F46E5", n: "ML-KEM-768 (Kyber)", u: "Key Encapsulation", f: "FIPS 203" },
-                { i: PenLine, bg: "#F5F3FF", c: "#7C3AED", n: "ML-DSA-65 (Dilithium)", u: "Digital Signatures", f: "FIPS 204" },
-                { i: ShieldCheck, bg: "#ECFDF5", c: "#10B981", n: "SLH-DSA (SPHINCS+)", u: "Stateless Signatures", f: "FIPS 205" }
-            ].map((k, i) => (
-                <div key={i} className="card">
-                    <div style={{ width: 40, height: 40, borderRadius: 20, background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <k.i size={20} color={k.c} />
-                    </div>
-                    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: '#111827', marginTop: 12 }}>{k.n}</div>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280', marginTop: 4 }}>{k.u}</div>
-                    <div style={{ marginTop: 10, display: 'inline-flex', background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', padding: '3px 10px', borderRadius: 999, fontFamily: "'Inter', sans-serif", fontSize: 11.5, fontWeight: 600 }}>
-                        {k.f}
-                    </div>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid #F3F4F6' }}>
+              {selectedStatus === 'pending' && (
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => updateTaskStatus(selectedItem.id, 'in-progress')}>Mark as In Progress</button>
+              )}
+              {selectedStatus === 'in-progress' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button className="btn-ghost" onClick={() => updateTaskStatus(selectedItem.id, 'pending')}>← Back to Pending</button>
+                  <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 8, padding: '10px 16px', fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => { updateTaskStatus(selectedItem.id, 'fixed'); setTimeout(() => setJustFixedId(null), 500); }}>
+                    {justFixedId === selectedItem.id ? <><CheckCircle size={18} /> Verified!</> : <><CheckCircle size={18} /> Mark as Fixed</>}
+                  </button>
                 </div>
-            ))}
+              )}
+              {selectedStatus === 'fixed' && (
+                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 8, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CheckCircle size={18} color="#10B981" />
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#059669' }}>Remediation Complete</span>
+                  </div>
+                  <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => updateTaskStatus(selectedItem.id, 'pending')}>Reopen</button>
+                </div>
+              )}
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {selectedAssignee ? (
+                  <> <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Assigned to: </span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151' }}>{selectedAssignee}</span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#4F46E5', cursor: 'pointer' }} onClick={() => { setAssignTarget(selectedItem); setAssignModalOpen(true); }}>Change</span> </>
+                ) : (
+                  <> <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Unassigned</span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#4F46E5', cursor: 'pointer' }} onClick={() => { setAssignTarget(selectedItem); setAssignModalOpen(true); }}>+ Assign</span> </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* PQC cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+        {PQC_ALGORITHMS.map(algo => (
+          <div key={algo.id} className="card" style={{ padding: 20, cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.borderColor = '#4F46E5'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(79,70,229,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: algo.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {algo.icon === 'Lock' && <Lock size={20} color={algo.iconColor} />}
+                {algo.icon === 'PenLine' && <PenLine size={20} color={algo.iconColor} />}
+                {algo.icon === 'ShieldCheck' && <ShieldCheck size={20} color={algo.iconColor} />}
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>{algo.name}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{algo.purpose}</div>
+                <span style={{ display: 'inline-block', marginTop: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#4F46E5', borderRadius: 999, padding: '3px 10px' }}>{algo.fips}</span>
+              </div>
+            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280', lineHeight: 1.6, marginBottom: 14 }}>{algo.description}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingTop: 14, borderTop: '1px solid #F3F4F6' }}>
+              {[{ l: 'Replaces', v: algo.replaces }, { l: 'Security', v: algo.securityLevel }, { l: 'Key Size', v: algo.keySize }, { l: 'Standardized', v: algo.standardDate }].map((d, i) => (
+                <div key={i}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.07em', marginBottom: 2 }}>{d.l}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#374151' }}>{d.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Use for: {algo.useCase}</span>
+              <ChevronRight size={14} color="#D1D5DB" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Assign modal */}
+      {assignModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setAssignModalOpen(false)}>
+          <div style={{ background: 'white', borderRadius: 12, width: 480, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users size={24} color="#4F46E5" /></div>
+              <div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: '#111827' }}>Assign Remediation Task</div>
+                {assignTarget && <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Assigning: {assignTarget.domain}</div>}
+              </div>
+            </div>
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {!assignTarget && (
+                <div>
+                  <label style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4, display: 'block' }}>Task to Assign</label>
+                  <select value={assignForm.task} onChange={e => setAssignForm(f => ({ ...f, task: e.target.value }))} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #E5E7EB' }}>
+                    <option value="">— Select task —</option>
+                    {ALL_REMEDIATION_ITEMS.filter(i => taskStatuses[i.id] === 'pending').map(i => <option key={i.id} value={i.id}>{i.domain} — {i.vulnerability}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4, display: 'block' }}>Assign To</label>
+                <select value={assignForm.member} onChange={e => setAssignForm(f => ({ ...f, member: e.target.value }))} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #E5E7EB' }}>
+                  {TEAM_MEMBERS.map(m => <option key={m.value || 'blank'} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4, display: 'block' }}>Priority Override</label>
+                <select value={assignForm.priority} onChange={e => setAssignForm(f => ({ ...f, priority: e.target.value }))} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #E5E7EB' }}>
+                  {['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4, display: 'block' }}>Due Date</label>
+                <input type="date" value={assignForm.dueDate} onChange={e => setAssignForm(f => ({ ...f, dueDate: e.target.value }))} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #E5E7EB' }} />
+              </div>
+              <div>
+                <label style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4, display: 'block' }}>Notes</label>
+                <textarea rows={3} placeholder="Additional instructions..." value={assignForm.notes} onChange={e => setAssignForm(f => ({ ...f, notes: e.target.value }))} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #E5E7EB', fontFamily: "'Inter', sans-serif" }} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151' }}>
+                <input type="checkbox" checked={assignForm.email} onChange={e => setAssignForm(f => ({ ...f, email: e.target.checked }))} /> Send email notification
+              </label>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button className="btn-ghost" onClick={() => { setAssignModalOpen(false); setAssignTarget(null); }}>Cancel</button>
+                <button className="btn-primary" onClick={handleAssign}>Assign Task</button>
+              </div>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 101, animation: 'fadeInUp 0.2s ease-out' }}>
+          {toast.type === 'fixed' && <CheckCircle size={18} color="#10B981" />}
+          {toast.type === 'export' && <Download size={18} color="#4F46E5" />}
+          {toast.type === 'assign' && <Users size={18} color="#4F46E5" />}
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{toast.message}</span>
+        </div>
+      )}
+
+      {/* Confetti — simple dots */}
+      {confetti && (
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 102 }}>
+          {[...Array(12)].map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute', left: '50%', top: '50%', width: 8, height: 8, borderRadius: '50%',
+              background: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'][i % 4],
+              animation: 'confetti 0.6s ease-out forwards',
+            }} />
+          ))}
+        </div>
+      )}
     </div>
-);
+  );
+};
 
 
 const CompliancePage = () => (
@@ -1361,6 +1758,7 @@ const AppShell = () => {
         @keyframes shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+        @keyframes confetti { 0% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-50%) translateY(-60px) scale(0); } }
         .shimmer-block { background: linear-gradient(90deg, #F1F3F9 0px, #E8EBF2 150px, #F1F3F9 300px); background-size: 600px 100%; animation: shimmer 1.6s ease-in-out infinite; border-radius: 8px; }
         .page-animate { animation: fadeInUp 0.22s ease-out both; }
         .nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 500; color: #6B7280; transition: background 0.12s, color 0.12s; user-select: none; margin: 1px 0; text-decoration: none; }
@@ -1397,6 +1795,7 @@ const AppShell = () => {
         @keyframes shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+        @keyframes confetti { 0% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-50%) translateY(-60px) scale(0); } }
         .shimmer-block { background: linear-gradient(90deg, #F1F3F9 0px, #E8EBF2 150px, #F1F3F9 300px); background-size: 600px 100%; animation: shimmer 1.6s ease-in-out infinite; border-radius: 8px; }
         .page-animate { animation: fadeInUp 0.22s ease-out both; }
         .nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 500; color: #6B7280; transition: background 0.12s, color 0.12s; user-select: none; margin: 1px 0; text-decoration: none; }

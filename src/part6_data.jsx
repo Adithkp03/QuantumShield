@@ -1,129 +1,130 @@
-const ALL_CBOM_COMPONENTS = [
-  { id:'CBOM-001', asset:'api.pnbindia.in',          algorithm:'RSA-PKCS1-SHA256',   keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:91, certExpiry:'15 Mar 2025', expired:true,  type:'API',        issuer:'DigiCert Inc' },
-  { id:'CBOM-002', asset:'netbanking.pnbindia.in',   algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:74, certExpiry:'01 Jun 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-003', asset:'vpn.pnbindia.in',          algorithm:'RSA-PKCS1-SHA1',      keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:95, certExpiry:'01 Jan 2026', expired:false, type:'VPN',        issuer:'Entrust CA' },
-  { id:'CBOM-004', asset:'mobile.pnbindia.in',       algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:52, certExpiry:'15 Aug 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-005', asset:'corp.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:18, certExpiry:'01 Feb 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-006', asset:'payments.pnbindia.in',     algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:88, certExpiry:'30 Sep 2025', expired:false, type:'API',        issuer:'GlobalSign' },
-  { id:'CBOM-007', asset:'sso.pnbindia.in',          algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:71, certExpiry:'10 Dec 2025', expired:false, type:'API',        issuer:'Sectigo CA' },
-  { id:'CBOM-008', asset:'cdn.pnbindia.in',          algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:5,  certExpiry:'01 Mar 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-009', asset:'trade.pnbindia.in',        algorithm:'DHE-RSA-2048',        keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:78, certExpiry:'20 Jul 2025', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
-  { id:'CBOM-010', asset:'forex.pnbindia.in',        algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:49, certExpiry:'05 Nov 2025', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-011', asset:'legacy.pnbindia.in',       algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.1', keyExchange:'RSA',            status:'critical',    riskScore:98, certExpiry:'01 Dec 2024', expired:true,  type:'Web Server', issuer:'Comodo CA' },
-  { id:'CBOM-012', asset:'b2b-api.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'critical',    riskScore:87, certExpiry:'14 Aug 2025', expired:false, type:'API',        issuer:'GlobalSign' },
-  { id:'CBOM-013', asset:'admin.pnbindia.in',        algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:73, certExpiry:'30 Oct 2025', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
-  { id:'CBOM-014', asset:'ib.pnbindia.in',           algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:72, certExpiry:'22 Sep 2025', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-015', asset:'mobilebank.pnbindia.in',   algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:69, certExpiry:'18 Jan 2026', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-016', asset:'docs.pnbindia.in',         algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:48, certExpiry:'01 Apr 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-017', asset:'internal.pnbindia.in',     algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:44, certExpiry:'15 May 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-018', asset:'portal.pnbindia.in',       algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:46, certExpiry:'01 Jul 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-019', asset:'loans.pnbindia.in',        algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:51, certExpiry:'20 Aug 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-020', asset:'cards.pnbindia.in',        algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:43, certExpiry:'10 Sep 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
-  { id:'CBOM-021', asset:'static.pnbindia.in',       algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'01 Feb 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-022', asset:'reporting.pnbindia.in',    algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:14, certExpiry:'01 Mar 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-023', asset:'analytics.pnbindia.in',    algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 Mar 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-024', asset:'gateway.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:13, certExpiry:'01 Apr 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-025', asset:'assets.pnbindia.in',       algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:4,  certExpiry:'15 Mar 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-026', asset:'media.pnbindia.in',        algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:3,  certExpiry:'01 Apr 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-027', asset:'secure-api.pnbindia.in',   algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:5,  certExpiry:'15 Apr 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
-  { id:'CBOM-028', asset:'pqc-test.pnbindia.in',     algorithm:'ML-DSA-87',           keySize:'4627-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:2,  certExpiry:'01 May 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
-  { id:'CBOM-029', asset:'infra.pnbindia.in',        algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:4,  certExpiry:'01 May 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-030', asset:'cloud.pnbindia.in',        algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:3,  certExpiry:'15 May 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  // Critical/High mix — branch/region assets
-  { id:'CBOM-031', asset:'branch1.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:90, certExpiry:'20 Mar 2025', expired:true,  type:'Web Server', issuer:'DigiCert Inc' },
-  { id:'CBOM-032', asset:'branch2.pnbindia.in',      algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.1', keyExchange:'RSA',            status:'critical',    riskScore:96, certExpiry:'10 Feb 2025', expired:true,  type:'Web Server', issuer:'Comodo CA' },
-  { id:'CBOM-033', asset:'branch3.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'critical',    riskScore:85, certExpiry:'01 Apr 2025', expired:false, type:'Web Server', issuer:'GlobalSign' },
-  { id:'CBOM-034', asset:'region1.pnbindia.in',      algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:89, certExpiry:'15 Jun 2025', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
-  { id:'CBOM-035', asset:'region2.pnbindia.in',      algorithm:'DHE-RSA-2048',        keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:76, certExpiry:'01 Jul 2025', expired:false, type:'Web Server', issuer:'GlobalSign' },
-  { id:'CBOM-036', asset:'region3.pnbindia.in',      algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:70, certExpiry:'22 Aug 2025', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-037', asset:'api-v2.pnbindia.in',       algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:75, certExpiry:'30 Sep 2025', expired:false, type:'API',        issuer:'DigiCert Inc' },
-  { id:'CBOM-038', asset:'api-v3.pnbindia.in',       algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:68, certExpiry:'15 Oct 2025', expired:false, type:'API',        issuer:'Sectigo CA' },
-  { id:'CBOM-039', asset:'svc1.pnbindia.in',         algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:92, certExpiry:'05 May 2025', expired:false, type:'API',        issuer:'GlobalSign' },
-  { id:'CBOM-040', asset:'svc2.pnbindia.in',         algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'critical',    riskScore:86, certExpiry:'18 Jun 2025', expired:false, type:'API',        issuer:'DigiCert Inc' },
-  // Medium risk assets
-  { id:'CBOM-041', asset:'app1.pnbindia.in',         algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:50, certExpiry:'01 Sep 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-042', asset:'app2.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:47, certExpiry:'15 Oct 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-043', asset:'app3.pnbindia.in',         algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:45, certExpiry:'01 Nov 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-044', asset:'partner1.pnbindia.in',     algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:42, certExpiry:'20 Dec 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
-  { id:'CBOM-045', asset:'partner2.pnbindia.in',     algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:53, certExpiry:'10 Jan 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-046', asset:'svc3.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:48, certExpiry:'25 Feb 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
-  { id:'CBOM-047', asset:'branch4.pnbindia.in',      algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:46, certExpiry:'01 Mar 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-048', asset:'region4.pnbindia.in',      algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:41, certExpiry:'15 Apr 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-049', asset:'branch5.pnbindia.in',      algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:55, certExpiry:'14 Mar 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-050', asset:'app4.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:50, certExpiry:'20 Mar 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  // PQC-ready assets
-  { id:'CBOM-051', asset:'api-v4.pnbindia.in',       algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:17, certExpiry:'01 May 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-052', asset:'svc4.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 May 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-053', asset:'partner3.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:19, certExpiry:'01 Jun 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-054', asset:'region5.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'15 Jun 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-055', asset:'branch6.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:14, certExpiry:'01 Jul 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-056', asset:'app5.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:18, certExpiry:'15 Jul 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-057', asset:'partner4.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:12, certExpiry:'01 Aug 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-058', asset:'svc5.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:11, certExpiry:'15 Aug 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-059', asset:'region6.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:13, certExpiry:'01 Sep 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-060', asset:'branch7.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 Sep 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-061', asset:'api-v5.pnbindia.in',       algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'01 Oct 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-062', asset:'app6.pnbindia.in',         algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:17, certExpiry:'15 Oct 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  // More quantum-safe
-  { id:'CBOM-063', asset:'secure-gw.pnbindia.in',    algorithm:'ML-DSA-87',           keySize:'4627-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:2,  certExpiry:'01 Jun 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
-  { id:'CBOM-064', asset:'pqc-prod.pnbindia.in',     algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:4,  certExpiry:'15 Jun 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-065', asset:'vault.pnbindia.in',        algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:1,  certExpiry:'01 Jul 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
-  // More critical/high
-  { id:'CBOM-066', asset:'branch8.pnbindia.in',      algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.0', keyExchange:'RSA',            status:'critical',    riskScore:99, certExpiry:'01 Nov 2024', expired:true,  type:'Web Server', issuer:'Comodo CA' },
-  { id:'CBOM-067', asset:'branch9.pnbindia.in',      algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:89, certExpiry:'12 Mar 2026', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
-  { id:'CBOM-068', asset:'region7.pnbindia.in',      algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'ECDH-RSA',       status:'critical',    riskScore:87, certExpiry:'25 Mar 2026', expired:false, type:'Web Server', issuer:'GlobalSign' },
-  { id:'CBOM-069', asset:'svc6.pnbindia.in',         algorithm:'DHE-RSA-2048',        keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:77, certExpiry:'01 Apr 2026', expired:false, type:'API',        issuer:'DigiCert Inc' },
-  { id:'CBOM-070', asset:'svc7.pnbindia.in',         algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:72, certExpiry:'15 Apr 2026', expired:false, type:'API',        issuer:'Sectigo CA' },
-  { id:'CBOM-071', asset:'partner5.pnbindia.in',     algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:74, certExpiry:'01 May 2026', expired:false, type:'Web Server', issuer:'GlobalSign' },
-  { id:'CBOM-072', asset:'app7.pnbindia.in',         algorithm:'ECDSA-SHA384',        keySize:'256-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'high',        riskScore:68, certExpiry:'15 May 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  // Medium
-  { id:'CBOM-073', asset:'branch10.pnbindia.in',     algorithm:'ECDSA-P256',          keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:44, certExpiry:'01 Jun 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-074', asset:'region8.pnbindia.in',      algorithm:'ECDSA-P384',          keySize:'384-bit',   tlsVer:'1.3', keyExchange:'X25519',         status:'medium',      riskScore:40, certExpiry:'15 Jun 2026', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-075', asset:'app8.pnbindia.in',         algorithm:'AES-128-CBC',         keySize:'128-bit',   tlsVer:'1.2', keyExchange:'ECDHE-RSA',      status:'medium',      riskScore:51, certExpiry:'01 Jul 2026', expired:false, type:'Web Server', issuer:'Sectigo CA' },
-  { id:'CBOM-076', asset:'svc8.pnbindia.in',         algorithm:'ECDH-SHA256',         keySize:'256-bit',   tlsVer:'1.3', keyExchange:'ECDHE',          status:'medium',      riskScore:54, certExpiry:'15 Jul 2026', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  // More PQC-ready
-  { id:'CBOM-077', asset:'partner6.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:14, certExpiry:'01 Nov 2027', expired:false, type:'API',        issuer:"Let's Encrypt" },
-  { id:'CBOM-078', asset:'branch11.pnbindia.in',     algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:16, certExpiry:'15 Nov 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  { id:'CBOM-079', asset:'region9.pnbindia.in',      algorithm:'ML-KEM-768',          keySize:'1184-bit',  tlsVer:'1.3', keyExchange:'X25519Kyber768', status:'pqc-ready',   riskScore:15, certExpiry:'01 Dec 2027', expired:false, type:'Web Server', issuer:"Let's Encrypt" },
-  // Critical tail
-  { id:'CBOM-080', asset:'branch12.pnbindia.in',     algorithm:'RSA-PKCS1-SHA1',      keySize:'1024-bit',  tlsVer:'1.0', keyExchange:'RSA',            status:'critical',    riskScore:97, certExpiry:'15 Oct 2024', expired:true,  type:'Web Server', issuer:'Comodo CA' },
-  { id:'CBOM-081', asset:'svc9.pnbindia.in',         algorithm:'RSA-2048',            keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'RSA',            status:'critical',    riskScore:90, certExpiry:'01 Sep 2025', expired:false, type:'API',        issuer:'GlobalSign' },
-  { id:'CBOM-082', asset:'region10.pnbindia.in',     algorithm:'RSA-PKCS1-SHA256',    keySize:'2048-bit',  tlsVer:'1.2', keyExchange:'DHE-RSA',        status:'high',        riskScore:73, certExpiry:'10 Apr 2026', expired:false, type:'Web Server', issuer:'DigiCert Inc' },
-  // Quantum safe tail
-  { id:'CBOM-083', asset:'pqc-staging.pnbindia.in',  algorithm:'ML-DSA-65',           keySize:'3309-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-768',     status:'quantum-safe',riskScore:5,  certExpiry:'01 Aug 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-084', asset:'secure-cdn.pnbindia.in',   algorithm:'SLH-DSA',             keySize:'7856-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:2,  certExpiry:'15 Aug 2027', expired:false, type:'Web Server', issuer:'PNB PQC CA' },
-  { id:'CBOM-085', asset:'pqc-api.pnbindia.in',      algorithm:'ML-DSA-87',           keySize:'4627-bit',  tlsVer:'1.3', keyExchange:'ML-KEM-1024',    status:'quantum-safe',riskScore:1,  certExpiry:'01 Sep 2027', expired:false, type:'API',        issuer:'PNB PQC CA' },
+/* REMEDIATION PAGE — DATA CONSTANTS */
+const INITIAL_REMEDIATION_ITEMS = [
+  {
+    id: 'REM-001', priority: 1, domain: 'vpn.pnbindia.in', type: 'VPN', status: 'critical', vulnerability: 'RSA Key Exchange',
+    vulnDetail: 'RSA key exchange is completely vulnerable to Shor\'s Algorithm on cryptographically relevant quantum computers.',
+    complexity: 'Easy', taskStatus: 'pending', estTime: '2–4 hours', skillLevel: 'SysAdmin', assignee: null,
+    configPatch: `# nginx.conf — Add PQC key exchange\nssl_ecdh_curve X25519Kyber768:prime256v1;\nssl_protocols TLSv1.3;\nssl_prefer_server_ciphers off;\nssl_ciphers TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256;`,
+    steps: ['Update OpenSSL to version 3.x with OQS provider', 'Configure ssl_ecdh_curve to X25519Kyber768:prime256v1', 'Set ssl_protocols to TLSv1.3 only', 'Disable ssl_prefer_server_ciphers', 'Test with openssl s_client -connect vpn.pnbindia.in:4500', 'Verify ML-KEM-768 handshake in scan results'],
+    impact: 'Eliminates primary quantum attack vector', nistrefs: ['FIPS 203', 'SP 800-208'],
+  },
+  {
+    id: 'REM-002', priority: 2, domain: 'api.pnbindia.in', type: 'API', status: 'critical', vulnerability: 'TLS 1.2 Active',
+    vulnDetail: 'TLS 1.2 supports cipher suites vulnerable to quantum attacks. TLS 1.3 is required for quantum transition readiness.',
+    complexity: 'Medium', taskStatus: 'in-progress', estTime: '4–8 hours', skillLevel: 'SysAdmin', assignee: 'Raj Kumar',
+    configPatch: `# nginx.conf — Force TLS 1.3\nssl_protocols TLSv1.3;\nssl_session_cache shared:SSL:10m;\nssl_session_timeout 1d;\n# Add HSTS\nadd_header Strict-Transport-Security \n  "max-age=31536000; includeSubDomains" always;`,
+    steps: ['Verify OpenSSL version supports TLS 1.3', 'Remove TLSv1.2 from ssl_protocols directive', 'Update ssl_ciphers for TLS 1.3 only', 'Restart nginx: sudo systemctl restart nginx', 'Verify with: openssl s_client -tls1_3 -connect api.pnbindia.in:443', 'Monitor for client compatibility issues for 48 hours'],
+    impact: 'Forces modern protocol with better cipher negotiation', nistrefs: ['NIST SP 800-52 Rev 2'],
+  },
+  {
+    id: 'REM-003', priority: 3, domain: 'payments.pnbindia.in', type: 'API', status: 'critical', vulnerability: 'RSA-2048 Cert',
+    vulnDetail: 'RSA-2048 certificate signature is broken by Shor\'s Algorithm. Must migrate to ML-DSA or SLH-DSA.',
+    complexity: 'Easy', taskStatus: 'pending', estTime: '2–4 hours', skillLevel: 'Security Eng.', assignee: null,
+    configPatch: `# Generate ML-DSA-65 certificate\nopenssl genpkey -algorithm mldsa65 \\\n  -out payments_mldsa65.key\nopenssl req -new -key payments_mldsa65.key \\\n  -out payments_mldsa65.csr \\\n  -subj "/CN=payments.pnbindia.in"\n# Submit CSR to PQC-capable CA`,
+    steps: ['Generate ML-DSA-65 private key using OQS OpenSSL', 'Create CSR with correct SAN entries', 'Submit to PNB internal PQC CA or PQC-capable public CA', 'Install signed certificate in nginx/apache', 'Update certificate monitoring for new format', 'Verify with QuantumShield TLS Analyzer'],
+    impact: 'Eliminates certificate signature vulnerability', nistrefs: ['FIPS 204'],
+  },
+  {
+    id: 'REM-004', priority: 4, domain: 'netbanking.pnbindia.in', type: 'Web Server', status: 'critical', vulnerability: 'Weak Cipher Suite',
+    vulnDetail: 'Server supports TLS_RSA_AES_256_CBC_SHA256 which uses RSA key exchange with no forward secrecy.',
+    complexity: 'Medium', taskStatus: 'pending', estTime: '3–6 hours', skillLevel: 'SysAdmin', assignee: null,
+    configPatch: `# Remove weak cipher suites\nssl_ciphers 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE+AESGCM';\nssl_prefer_server_ciphers on;\n# Disable CBC mode ciphers\nssl_ciphers '!CBC:!RC4:!NULL:!aNULL:!eNULL';`,
+    steps: ['Audit current cipher suite list with testssl.sh', 'Remove all CBC mode ciphers', 'Remove all RSA key exchange ciphers', 'Keep only ECDHE + AEAD cipher suites', 'Test for client compatibility', 'Re-scan with QuantumShield to verify'],
+    impact: 'Removes weak cipher fallback vectors', nistrefs: ['NIST SP 800-52 Rev 2'],
+  },
+  {
+    id: 'REM-005', priority: 5, domain: 'sso.pnbindia.in', type: 'API', status: 'critical', vulnerability: 'No PFS',
+    vulnDetail: 'Server lacks Perfect Forward Secrecy. All past sessions can be decrypted if private key is compromised.',
+    complexity: 'Easy', taskStatus: 'pending', estTime: '1–2 hours', skillLevel: 'SysAdmin', assignee: null,
+    configPatch: `# Enable Perfect Forward Secrecy\nssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256';\nssl_ecdh_curve secp384r1;\nssl_prefer_server_ciphers on;\n# Disable session tickets (breaks PFS)\nssl_session_tickets off;`,
+    steps: ['Disable ssl_session_tickets', 'Update ssl_ciphers to ECDHE-only suites', 'Set ssl_ecdh_curve to secp384r1 minimum', 'Test PFS with ssllabs.com or testssl.sh', 'Verify —PFS flag in scan output'],
+    impact: 'Protects all future sessions from compromise', nistrefs: ['NIST SP 800-52 Rev 2'],
+  },
+  {
+    id: 'REM-006', priority: 6, domain: 'mobile.pnbindia.in', type: 'Web Server', status: 'high', vulnerability: 'ECDH Key Exchange',
+    vulnDetail: 'Elliptic curve Diffie-Hellman is broken by Shor\'s Algorithm on quantum computers.',
+    complexity: 'Hard', taskStatus: 'pending', estTime: '8–16 hours', skillLevel: 'Security Eng.', assignee: null,
+    configPatch: `# Replace ECDH with ML-KEM hybrid\nssl_ecdh_curve X25519Kyber768:prime256v1;\nssl_protocols TLSv1.3;\n# Requires OpenSSL 3.x + OQS provider\n# Download: github.com/open-quantum-safe/oqs-provider`,
+    steps: ['Install OpenSSL 3.x with OQS provider', 'Build nginx with updated OpenSSL', 'Configure X25519Kyber768 as preferred curve', 'Test hybrid handshake with Chrome/Firefox nightly', 'Monitor mobile app compatibility', 'Roll out gradually (10% → 50% → 100%)', 'Full validation with QuantumShield scanner'],
+    impact: 'Replaces quantum-vulnerable key exchange', nistrefs: ['FIPS 203', 'IETF Draft hybrid-kem'],
+  },
+  {
+    id: 'REM-007', priority: 7, domain: 'trade.pnbindia.in', type: 'Web Server', status: 'high', vulnerability: 'TLS 1.1 Detected',
+    vulnDetail: 'TLS 1.1 is deprecated by RFC 8996. Contains known vulnerabilities including BEAST and POODLE.',
+    complexity: 'Easy', taskStatus: 'fixed', estTime: '30 min', skillLevel: 'SysAdmin', assignee: 'Priya Sharma',
+    configPatch: `# Already applied:\nssl_protocols TLSv1.2 TLSv1.3;\n# TLS 1.0 and 1.1 disabled`,
+    steps: ['Remove TLSv1.1 from ssl_protocols ✓', 'Restart web server ✓', 'Verify with scanner ✓'],
+    impact: 'TLS 1.1 successfully disabled', nistrefs: ['RFC 8996'],
+  },
+  {
+    id: 'REM-008', priority: 8, domain: 'forex.pnbindia.in', type: 'Web Server', status: 'medium', vulnerability: 'AES-128 Usage',
+    vulnDetail: 'AES-128 provides only 64-bit effective security against Grover\'s Algorithm on quantum computers.',
+    complexity: 'Medium', taskStatus: 'pending', estTime: '2–4 hours', skillLevel: 'SysAdmin', assignee: null,
+    configPatch: `# Upgrade to AES-256\nssl_ciphers 'TLS_AES_256_GCM_SHA384:ECDHE-RSA-AES256-GCM-SHA384';\n# Remove AES-128 entries from cipher list`,
+    steps: ['Update cipher list to prefer AES-256', 'Remove AES-128 cipher suites', 'Test with openssl ciphers command', 'Verify no AES-128 in scan results'],
+    impact: 'Doubles effective key strength against Grover\'s', nistrefs: ['NIST SP 800-131A Rev 2'],
+  },
 ];
 
-const ALGO_DISTRIBUTION = [
-  { algo:'RSA-PKCS1-SHA256', count:89,  safe:false, color:'#EF4444' },
-  { algo:'ECDSA-SHA384',     count:67,  safe:false, color:'#F97316' },
-  { algo:'ECDH-SHA256',      count:54,  safe:false, color:'#F97316' },
-  { algo:'AES-128-CBC',      count:43,  safe:false, color:'#F59E0B' },
-  { algo:'RSA-PKCS1-SHA1',   count:31,  safe:false, color:'#EF4444' },
-  { algo:'DHE-RSA-2048',     count:28,  safe:false, color:'#F97316' },
-  { algo:'ECDSA-P256',       count:22,  safe:false, color:'#F59E0B' },
-  { algo:'AES-256-GCM',      count:18,  safe:true,  color:'#10B981' },
-  { algo:'ML-KEM-768',       count:14,  safe:true,  color:'#059669' },
-  { algo:'ML-DSA-65',        count:9,   safe:true,  color:'#059669' },
-  { algo:'SLH-DSA',          count:5,   safe:true,  color:'#059669' },
-  { algo:'ML-DSA-87',        count:3,   safe:true,  color:'#059669' },
-];
+const _GEN_DOMAINS = ['branch','region','zone','cluster','local','node','proxy','gateway','auth','db','cache','queue'];
+const _GEN_VULNS = ['RSA Key Exchange', 'ECDH Key Exchange', 'TLS 1.2 Active', 'RSA-2048 Cert', 'Weak Cipher Suite', 'No PFS', 'AES-128 Usage', 'TLS 1.1 Detected', 'OCSP Disabled', 'No HSTS', 'DHE Key Exchange', 'SHA-1 Signature', 'Certificate Expiring', 'No Cert Transparency'];
+const _GEN_COMPLEXITY = ['Easy', 'Medium', 'Hard'];
 
-const TLS_DISTRIBUTION = [
-  { name:'TLS 1.0', value:8,   color:'#DC2626' },
-  { name:'TLS 1.1', value:19,  color:'#EA580C' },
-  { name:'TLS 1.2', value:172, color:'#F59E0B' },
-  { name:'TLS 1.3', value:48,  color:'#10B981' },
-];
+const generateRemainingItems = () => {
+  const items = [...INITIAL_REMEDIATION_ITEMS];
+  let critCount = 28, highCount = 67, medCount = 39;
+  
+  for (let i = 0; i < 139; i++) {
+    const status = critCount > 0 ? 'critical' : (highCount > 0 ? 'high' : 'medium');
+    if (status === 'critical') critCount--;
+    else if (status === 'high') highCount--;
+    else medCount--;
 
-const KEY_EXCHANGE_DIST = [
-  { name:'RSA',            count:89,  safe:false },
-  { name:'ECDHE-RSA',      count:94,  safe:false },
-  { name:'DHE-RSA',        count:43,  safe:false },
-  { name:'ECDHE',          count:27,  safe:false },
-  { name:'X25519',         count:18,  safe:false },
-  { name:'X25519Kyber768', count:38,  safe:true  },
-  { name:'ML-KEM-768',     count:24,  safe:true  },
-  { name:'ML-KEM-1024',    count:14,  safe:true  },
+    const r = Math.random();
+    const taskStatus = r < 0.05 ? 'fixed' : (r < 0.15 ? 'in-progress' : 'pending');
+    const compIdx = r < 0.4 ? 0 : (r < 0.8 ? 1 : 2);
+    
+    const domainPrefix = _GEN_DOMAINS[i % _GEN_DOMAINS.length];
+    const n = Math.floor(i / _GEN_DOMAINS.length) + 1;
+    
+    items.push({
+      id: `REM-${String(i+9).padStart(3, '0')}`,
+      priority: i + 9,
+      domain: `${domainPrefix}${n}.pnbindia.in`,
+      type: 'Web Server',
+      status,
+      vulnerability: _GEN_VULNS[i % _GEN_VULNS.length],
+      vulnDetail: 'Autogenerated vulnerability detail for simulation purposes.',
+      complexity: _GEN_COMPLEXITY[compIdx],
+      taskStatus,
+      estTime: '2-4 hours',
+      skillLevel: 'SysAdmin',
+      assignee: taskStatus === 'in-progress' ? 'Auto Assignee' : null,
+      configPatch: '# Standard config patch\\n# Review required',
+      steps: ['Review current configuration', 'Apply standard patch', 'Test changes', 'Verify with scanner'],
+      impact: 'Standard security improvement',
+      nistrefs: ['NIST SP 800-52'],
+    });
+  }
+  return items;
+};
+
+const ALL_REMEDIATION_ITEMS = generateRemainingItems();
+
+const PQC_ALGORITHMS = [
+  {
+    id: 1, name: 'ML-KEM-768 (Kyber)', purpose: 'Key Encapsulation', fips: 'FIPS 203', icon: 'Lock', iconBg: '#EEF2FF', iconColor: '#4F46E5',
+    description: 'NIST-standardized key encapsulation mechanism. Replaces RSA and ECDH for key exchange.',
+    replaces: 'RSA, ECDH, DHE', securityLevel: 'NIST Level 3', keySize: '1184 bytes (public)', standardDate: 'Aug 2024', useCase: 'TLS key exchange, VPN tunnels',
+  },
+  {
+    id: 2, name: 'ML-DSA-65 (Dilithium)', purpose: 'Digital Signatures', fips: 'FIPS 204', icon: 'PenLine', iconBg: '#F5F3FF', iconColor: '#7C3AED',
+    description: 'NIST-standardized digital signature algorithm. Replaces RSA and ECDSA for certificate signing.',
+    replaces: 'RSA-PKCS1, ECDSA', securityLevel: 'NIST Level 3', keySize: '1952 bytes (public)', standardDate: 'Aug 2024', useCase: 'Certificate signing, authentication',
+  },
+  {
+    id: 3, name: 'SLH-DSA (SPHINCS+)', purpose: 'Stateless Signatures', fips: 'FIPS 205', icon: 'ShieldCheck', iconBg: '#ECFDF5', iconColor: '#059669',
+    description: 'Hash-based stateless signature scheme. Conservative choice based on well-understood security.',
+    replaces: 'RSA (signing), ECDSA', securityLevel: 'NIST Level 3', keySize: '32 bytes (public)', standardDate: 'Aug 2024', useCase: 'Code signing, long-term certificates',
+  },
 ];

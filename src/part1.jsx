@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity, Globe, Code, Network, Server, LayoutDashboard, TrendingDown, TrendingUp, PenLine, SlidersHorizontal, Hash, GitBranch, Clock, X, Shield, Code2, SearchX, Plus, Check, ChevronUp, Download, ExternalLink, Copy, Info, ArrowRight, AlertCircle, RefreshCw, ChevronsUpDown } from 'lucide-react';
+import { ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity, Globe, Code, Network, Server, LayoutDashboard, TrendingDown, TrendingUp, PenLine, SlidersHorizontal, Hash, GitBranch, Clock, X, Shield, Code2, SearchX, Plus, Check, ChevronUp, Download, ExternalLink, Copy, Info, ArrowRight, AlertCircle, RefreshCw, ChevronsUpDown, Users, User, Calendar, QrCode, Link, Eye, Star } from 'lucide-react';
 import { AreaChart, Area, LineChart, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Line } from 'recharts';
 
 const BADGE_STYLES = {
