@@ -1,41 +1,3 @@
-/* REPORTS PAGE — DATA CONSTANTS */
-const REPORT_TYPES = [
-  { id: 'full', title: 'Full Security Report', subtitle: 'All sections, complete detail', icon: 'FileText', sections: ['cbom', 'tls', 'risk', 'remediation', 'compliance'], estimatedPages: 24, estimatedSize: '2.4 MB' },
-  { id: 'executive', title: 'Executive Summary', subtitle: '2-page overview for management', icon: 'BarChart2', sections: ['risk', 'compliance'], estimatedPages: 2, estimatedSize: '180 KB' },
-  { id: 'technical', title: 'Technical Deep Dive', subtitle: 'Raw data, all cipher details', icon: 'Terminal', sections: ['cbom', 'tls', 'remediation'], estimatedPages: 38, estimatedSize: '4.1 MB' },
-  { id: 'compliance', title: 'Compliance Report', subtitle: 'Framework gap analysis', icon: 'ClipboardCheck', sections: ['compliance', 'risk'], estimatedPages: 12, estimatedSize: '980 KB' },
-];
-
-const REPORT_SECTIONS = [
-  { id: 'cbom', label: 'CBOM Inventory', defaultOn: true },
-  { id: 'tls', label: 'TLS Analysis Results', defaultOn: true },
-  { id: 'risk', label: 'Quantum Risk Assessment', defaultOn: true },
-  { id: 'remediation', label: 'Remediation Plan', defaultOn: true },
-  { id: 'compliance', label: 'Compliance Mapping', defaultOn: true },
-  { id: 'rawdata', label: 'Raw Data Export', defaultOn: false },
-];
-
-const EXPORT_FORMATS = [
-  { id: 'pdf', label: 'PDF', icon: 'FileText' },
-  { id: 'json', label: 'JSON', icon: 'Braces' },
-  { id: 'csv', label: 'CSV', icon: 'Table' },
-  { id: 'xml', label: 'XML', icon: 'Code' },
-];
-
-const SCHEDULED_REPORTS = [
-  { id: 'SCH-001', name: 'Weekly Full Security Report', type: 'full', frequency: 'Weekly', nextRun: 'Mar 19, 2026 — 02:00 IST', format: 'PDF', recipients: ['ciso@pnb.co.in', 'security@pnb.co.in'], active: true },
-  { id: 'SCH-002', name: 'Monthly Executive Summary', type: 'executive', frequency: 'Monthly', nextRun: 'Apr 01, 2026 — 08:00 IST', format: 'PDF', recipients: ['board@pnb.co.in'], active: true },
-  { id: 'SCH-003', name: 'Daily Compliance Check', type: 'compliance', frequency: 'Daily', nextRun: 'Mar 13, 2026 — 00:00 IST', format: 'JSON', recipients: ['compliance@pnb.co.in'], active: false },
-];
-
-const RECENT_REPORTS = [
-  { id: 'RPT-001', name: 'Full Security Report — Mar 12', type: 'full', generatedAt: 'Mar 12, 2026 18:00', format: 'PDF', size: '2.3 MB', pages: 24, generatedBy: 'raj.kumar' },
-  { id: 'RPT-002', name: 'Executive Summary — Mar 05', type: 'executive', generatedAt: 'Mar 05, 2026 09:00', format: 'PDF', size: '175 KB', pages: 2, generatedBy: 'admin' },
-  { id: 'RPT-003', name: 'Compliance Report — Feb 28', type: 'compliance', generatedAt: 'Feb 28, 2026 17:30', format: 'PDF', size: '960 KB', pages: 11, generatedBy: 'deepa.singh' },
-  { id: 'RPT-004', name: 'CBOM Export — Feb 26', type: 'technical', generatedAt: 'Feb 26, 2026 14:00', format: 'JSON', size: '1.2 MB', pages: null, generatedBy: 'raj.kumar' },
-];
-
-
 /* REPORTS PAGE — Component */
 const ReportsPage = ({ nav }) => {
   const [reportType, setReportType] = useState('full');
@@ -71,16 +33,51 @@ const ReportsPage = ({ nav }) => {
   const activeSectionsCount = Object.values(sections).filter(Boolean).length;
 
   const showToast = (msg, type='success') => { setToastMessage({msg, type}); setTimeout(() => setToastMessage(null), 3000); };
-
   const downloadReport = () => {
-    let content = '', filename = '';
-    if (exportFormat === 'pdf') { content = 'QuantumShield PDF Export Simulation\n\nReport Type: ' + currentType.title; filename = 'pnb-quantum-security-report.txt'; }
-    else if (exportFormat === 'json') { content = JSON.stringify({ metadata: { type: currentType.id, format: exportFormat, generated: new Date().toISOString() }, summary: { totalAssets: 247, riskScore: 67.4 } }, null, 2); filename = 'pnb-cbom-report.json'; }
-    else if (exportFormat === 'csv') { content = 'Asset,Vulnerability,Complexity,Status\ncorp.pnbindia.in,RSA Key Exchange,Hard,Pending'; filename = 'pnb-security-report.csv'; }
-    else { content = '<?xml version="1.0"?><report><type>'+currentType.title+'</type></report>'; filename = 'pnb-report.xml'; }
+    let filename = '';
     
-    const blob = new Blob([content], {type: 'text/plain'}); const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    if (exportFormat === 'pdf') {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.setTextColor(17, 24, 39);
+      doc.text("QuantumShield Security Report", 20, 30);
+      
+      doc.setFontSize(14);
+      doc.setTextColor(79, 70, 229);
+      doc.text(currentType.title, 20, 42);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 50);
+      doc.text(`Estimated Pages: ~${currentType.estimatedPages}`, 20, 56);
+      doc.text(`Sections Included: ${Object.keys(sections).filter(k => sections[k]).join(', ')}`, 20, 62);
+      doc.text(`Target Asset Scope: pnbindia.in (Corporate)`, 20, 68);
+      
+      doc.line(20, 75, 190, 75);
+      
+      doc.setFontSize(16);
+      doc.setTextColor(17, 24, 39);
+      doc.text("Executive Summary", 20, 90);
+      doc.setFontSize(11);
+      doc.setTextColor(55, 65, 81);
+      doc.text(
+        "This mathematically-guaranteed cryptographic inventory report demonstrates\n" +
+        "the presence of legacy non-PQC resilient ciphers across internal networks.\n" +
+        "We discovered 245 active certificates and a risk score marking of 67.4.",
+        20, 100
+      );
+      
+      filename = 'pnb-quantum-security-report.pdf';
+      doc.save(filename);
+    } else {
+      let content = '';
+      if (exportFormat === 'json') { content = JSON.stringify({ metadata: { type: currentType.id, format: exportFormat, generated: new Date().toISOString() }, summary: { totalAssets: 247, riskScore: 67.4 } }, null, 2); filename = 'pnb-cbom-report.json'; }
+      else if (exportFormat === 'csv') { content = 'Asset,Vulnerability,Complexity,Status\ncorp.pnbindia.in,RSA Key Exchange,Hard,Pending'; filename = 'pnb-security-report.csv'; }
+      else { content = '<?xml version="1.0"?><report><type>'+currentType.title+'</type></report>'; filename = 'pnb-report.xml'; }
+      
+      const blob = new Blob([content], {type: 'text/plain'}); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    }
     
     setGenerating(false); setGenerationStep(0);
     showToast(`Report downloaded successfully: ${exportFormat.toUpperCase()} · ${currentType.estimatedPages} pages`);

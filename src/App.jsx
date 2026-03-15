@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity, Globe, Code, Network, Server, LayoutDashboard, TrendingDown, TrendingUp, PenLine, SlidersHorizontal, Hash, GitBranch, Clock, X, Shield, Code2, SearchX, Plus, Check, ChevronUp, Download, ExternalLink, Copy, Info, ArrowRight, AlertCircle, RefreshCw, ChevronsUpDown, Users, User, Calendar, QrCode, Link, Eye, Star } from 'lucide-react';
+import { ShieldCheck, Radar, Lock, ClipboardList, Atom, Wrench, FileText, Award, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Zap, CheckCircle, AlertTriangle, XCircle, Activity, Globe, Code, Network, Server, LayoutDashboard, TrendingDown, TrendingUp, PenLine, SlidersHorizontal, Hash, GitBranch, Clock, X, Shield, Code2, SearchX, Plus, Check, ChevronUp, Download, ExternalLink, Copy, Info, ArrowRight, AlertCircle, RefreshCw, ChevronsUpDown, Users, User, Calendar, QrCode, Link, Eye, Star, BarChart2, Terminal, ClipboardCheck, Edit, Trash2, Send, Braces, Table } from 'lucide-react';
 import { AreaChart, Area, LineChart, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Line } from 'recharts';
+import { jsPDF } from 'jspdf';
 
 const BADGE_STYLES = {
     'quantum-safe': { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' },
@@ -2538,200 +2539,1256 @@ const CertificatesPage = ({ nav }) => {
 };
 
 
-const ReportsPage = () => (
-    <div>
-        <PageHeader
-            title="Reports & Export"
-            subtitle="Generate, schedule, and export cryptographic audit reports"
-            actions={<><button className="btn-ghost">Scheduled Reports</button><button className="btn-primary">↓ Generate Now</button></>}
-        />
+const RISK_DATA = {
+  overallScore: 78.2,
+  vulnerableAssets: 184,
+  totalAssets: 247,
+  byCategory: [
+    { label: 'Network', color: '#4F46E5', count: 82, pct: 33 },
+    { label: 'Storage', color: '#F59E0B', count: 65, pct: 26 },
+    { label: 'Compute', color: '#10B981', count: 54, pct: 22 },
+    { label: 'Identity', color: '#EF4444', count: 46, pct: 19 }
+  ],
+  sixMonthTrend: [
+    { month: 'Oct', score: 85.1 },
+    { month: 'Nov', score: 84.5 },
+    { month: 'Dec', score: 82.3 },
+    { month: 'Jan', score: 81.0 },
+    { month: 'Feb', score: 79.8 },
+    { month: 'Mar', score: 78.2 }
+  ],
+  lastImprovement: '1.6 pts'
+};
 
-        <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 20 }}>
-            <div className="card">
-                <div style={{ marginBottom: 20 }}>
-                    <SectionTitle>Report Type</SectionTitle>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {[
-                            { l: "Full Security Report", sub: "All sections, complete detail", sel: true },
-                            { l: "Executive Summary", sub: "2-page overview for management" },
-                            { l: "Technical Deep Dive", sub: "Raw data, all cipher details" },
-                            { l: "Compliance Report", sub: "Framework gap analysis" }
-                        ].map((r, i) => (
-                            <div key={i} style={{ padding: '12px 14px', borderRadius: 8, border: `1px solid ${r.sel ? '#4F46E5' : '#E5E7EB'}`, background: r.sel ? '#EEF2FF' : '#F9FAFB', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center' }}>
-                                <div style={{ width: 16, height: 16, borderRadius: 8, border: `1px solid ${r.sel ? '#4F46E5' : '#9CA3AF'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {r.sel && <div style={{ width: 8, height: 8, borderRadius: 4, background: '#4F46E5' }} />}
-                                </div>
-                                <div>
-                                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{r.l}</div>
-                                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>{r.sub}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+const TOP_CRITICAL_ASSETS = [
+  { rank: 1, domain: 'vpn.pnbindia.in', exposure: 'Customer Data', score: 96, status: 'critical' },
+  { rank: 2, domain: 'api.pnbindia.in', exposure: 'Financial Txns', score: 92, status: 'critical' },
+  { rank: 3, domain: 'db-main.pnbindia.in', exposure: 'PII Records', score: 88, status: 'high' }
+];
+
+const HNDL_DATA = {
+  firstEncryptedYear: 2017,
+  crqcRiskMap: {
+    2028: { dataAtRisk: '8.4 TB', records: '4.2M', risk: 'CRITICAL', color: '#EF4444' },
+    2029: { dataAtRisk: '7.1 TB', records: '3.8M', risk: 'CRITICAL', color: '#EF4444' },
+    2030: { dataAtRisk: '5.9 TB', records: '3.1M', risk: 'HIGH', color: '#F97316' },
+    2031: { dataAtRisk: '4.7 TB', records: '2.3M', risk: 'HIGH', color: '#F97316' },
+    2032: { dataAtRisk: '3.8 TB', records: '1.9M', risk: 'MEDIUM', color: '#F59E0B' },
+    2033: { dataAtRisk: '2.9 TB', records: '1.5M', risk: 'MEDIUM', color: '#F59E0B' },
+    2034: { dataAtRisk: '1.8 TB', records: '0.9M', risk: 'LOW', color: '#10B981' },
+    2035: { dataAtRisk: '1.1 TB', records: '0.4M', risk: 'LOW', color: '#10B981' }
+  },
+  timeline: [
+    { year: 2017, type: 'start', event: 'Initial Encrypted Data' },
+    { year: 2024, type: 'milestone', event: 'NIST Finalizes PQC' },
+    { year: 2026, type: 'current', event: 'Current Day Analysis' },
+    { year: 2031, type: 'threat', event: 'Estimated CRQC Emergence' }
+  ]
+};
+
+const RISK_MATRIX_ASSETS = [
+  { domain: 'vpn.pnbindia.in', status: 'critical', x: 85, y: 92, r: 8 },
+  { domain: 'api.pnbindia.in', status: 'critical', x: 78, y: 88, r: 6 },
+  { domain: 'files.pnbindia.in', status: 'high', x: 65, y: 75, r: 5 },
+  { domain: 'intranet.pnbindia.in', status: 'medium', x: 45, y: 55, r: 4 },
+  { domain: 'public.pnbindia.in', status: 'pqc-ready', x: 25, y: 35, r: 4 },
+  { domain: 'static.pnbindia.in', status: 'quantum-safe', x: 10, y: 15, r: 3 }
+];
+
+const ALGO_VULN_TABLE = [
+  { algo: 'RSA-2048', shors: true, grovers: false, nistrec: 'Replace with ML-KEM', urgent: true },
+  { algo: 'ECDH (P-256)', shors: true, grovers: false, nistrec: 'Replace with ML-KEM', urgent: true },
+  { algo: 'AES-128', shors: false, grovers: true, nistrec: 'Upgrade to AES-256', urgent: false },
+  { algo: 'AES-256', shors: false, grovers: false, nistrec: 'Safe against Grover\'s', urgent: false },
+  { algo: 'SHA-256', shors: false, grovers: true, nistrec: 'Acceptable but consider SHA-384+', urgent: false }
+];
+
+const KEY_EXCHANGE_DIST_RISK = [
+  { name: 'RSA Transport', count: 112, color: '#EF4444' },
+  { name: 'ECDH', count: 85, color: '#F97316' },
+  { name: 'Hybrid', count: 32, color: '#3B82F6' },
+  { name: 'ML-KEM-768', count: 18, color: '#10B981' }
+];
+
+const ALL_CBOM_COMPONENTS = [
+  { id: 'CBOM-001', asset: 'vpn.pnb.in', type: 'Gateway', tlsVer: '1.2', algorithm: 'RSA-2048', riskScore: 96, status: 'critical' },
+  { id: 'CBOM-002', asset: 'api.pnb.in', type: 'API', tlsVer: '1.2', algorithm: 'ECDH', riskScore: 92, status: 'critical' },
+  { id: 'CBOM-003', asset: 'portal.pnb.in', type: 'Web', tlsVer: '1.3', algorithm: 'Hybrid', riskScore: 45, status: 'pqc-ready' },
+  { id: 'CBOM-004', asset: 'static.pnb.in', type: 'CDN', tlsVer: '1.3', algorithm: 'ML-KEM', riskScore: 12, status: 'quantum-safe' }
+];
+
+
+const RiskPage = ({ nav }) => {
+  const [crqcYear, setCrqcYear] = useState(2031);
+  const [scoreAnimated, setScoreAnimated] = useState(0);
+  const [matrixTooltip, setMatrixTooltip] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [reportGenerating, setReportGenerating] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configCrqc, setConfigCrqc] = useState(2031);
+  const [barsAnimated, setBarsAnimated] = useState(false);
+  const [rankPage, setRankPage] = useState(1);
+  const [rankSearch, setRankSearch] = useState('');
+
+  const currentHNDL = HNDL_DATA.crqcRiskMap[crqcYear];
+  const yearsExposed = crqcYear - HNDL_DATA.firstEncryptedYear;
+
+  useEffect(() => {
+    let start = 0; const end = RISK_DATA.overallScore; const dur = 1500; const step = end / (dur / 16);
+    const timer = setInterval(() => { start += step; if (start >= end) { setScoreAnimated(end); clearInterval(timer); } else { setScoreAnimated(parseFloat(start.toFixed(1))); } }, 16);
+    setTimeout(() => setBarsAnimated(true), 300);
+    return () => clearInterval(timer);
+  }, []);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  const handleGenerateReport = () => {
+    setReportGenerating(true);
+    setTimeout(() => {
+      const report = `PNB QuantumShield — Quantum Risk Report\nGenerated: ${new Date().toLocaleString()}\n\nOVERALL RISK SCORE: ${RISK_DATA.overallScore}/100 (HIGH)\nVulnerable Assets: ${RISK_DATA.vulnerableAssets} of ${RISK_DATA.totalAssets}\n\nTOP CRITICAL ASSETS:\n${TOP_CRITICAL_ASSETS.map(a => `  ${a.rank}. ${a.domain} — Score: ${a.score} — ${a.exposure}`).join('\n')}\n\nHNDL EXPOSURE:\nData at risk: ${currentHNDL.dataAtRisk}\nRecords: ${currentHNDL.records}\nProjected CRQC: ${crqcYear}\n\nRECOMMENDED ACTIONS:\n1. Replace all RSA key exchanges with ML-KEM-768\n2. Upgrade TLS 1.0/1.1 endpoints to TLS 1.3\n3. Deploy hybrid PQC certificates on critical assets\n4. Implement crypto-agility framework\n5. Establish continuous CBOM monitoring`;
+      const blob = new Blob([report], { type: 'text/plain' }); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'quantum-risk-report.txt'; a.click(); URL.revokeObjectURL(url);
+      setReportGenerating(false); showToast('Risk report downloaded');
+    }, 1800);
+  };
+
+  const matrixColors = { critical:'#EF4444', high:'#F97316', medium:'#F59E0B', 'pqc-ready':'#3B82F6', 'quantum-safe':'#10B981' };
+  const getScoreColor = (s) => { if (s >= 90) return '#DC2626'; if (s >= 70) return '#EA580C'; if (s >= 50) return '#7C3AED'; if (s >= 20) return '#D97706'; return '#059669'; };
+
+  const tabStyle = (t) => ({ padding: '10px 18px', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: activeTab === t ? 600 : 500, color: activeTab === t ? '#4F46E5' : '#6B7280', borderBottom: activeTab === t ? '2px solid #4F46E5' : '2px solid transparent', background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: 2, borderBottomColor: activeTab === t ? '#4F46E5' : 'transparent', transition: 'color 0.15s' });
+
+  const sliderStyle = `
+    .crqc-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #EF4444, #F97316, #F59E0B, #6B7280); outline: none; cursor: pointer; }
+    .crqc-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid #4F46E5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
+    .crqc-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid #4F46E5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
+    .dot-pulse { animation: pulseDot 2s infinite; }
+  `;
+
+  const renderOverview = () => (
+    <>
+      {/* ROW 1: 3 columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Risk Score Card */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center', minHeight: 280 }}>
+          <div>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 72, fontWeight: 800, color: '#EF4444' }}>{scoreAnimated}</span>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 24, fontWeight: 400, color: '#9CA3AF', verticalAlign: 'baseline', marginLeft: 4 }}>/100</span>
+          </div>
+          <div style={{ marginTop: 14, background: '#FFF7ED', color: '#EA580C', border: '1px solid #FED7AA', borderRadius: 999, padding: '5px 16px', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>HIGH RISK</div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9CA3AF', marginTop: 16, maxWidth: 220, lineHeight: 1.6 }}>{RISK_DATA.vulnerableAssets} of {RISK_DATA.totalAssets} assets have quantum-vulnerable configurations</div>
+          <div style={{ marginTop: 20, width: '100%' }}>
+            {RISK_DATA.byCategory.filter(c => c.label !== 'Unscanned').map((cat, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: cat.color, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280', width: 64, textAlign: 'left' }}>{cat.label}</span>
+                <div style={{ flex: 1, height: 4, background: '#F3F4F6', borderRadius: 2 }}>
+                  <div style={{ height: '100%', width: barsAnimated ? (cat.count / 247 * 100) + '%' : '0%', background: cat.color, borderRadius: 2, transition: `width 1s ease-out ${i * 0.1}s` }} />
                 </div>
-
-                <div style={{ marginBottom: 20 }}>
-                    <SectionTitle>Date Range</SectionTitle>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <div>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>From</div>
-                            <input type="date" style={{ width: '100%' }} />
-                        </div>
-                        <div>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>To</div>
-                            <input type="date" style={{ width: '100%' }} />
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                    <SectionTitle>Include Sections</SectionTitle>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" defaultChecked /> CBOM Inventory</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" defaultChecked /> TLS Analysis Results</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" defaultChecked /> Quantum Risk Assessment</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" defaultChecked /> Remediation Plan</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" defaultChecked /> Compliance Mapping</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><input type="checkbox" /> Raw Data Export</label>
-                    </div>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                    <SectionTitle>Export Format</SectionTitle>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                        {['PDF', 'JSON', 'CSV', 'XML'].map((f, i) => (
-                            <div key={i} style={{
-                                border: `1px solid ${i === 0 ? '#4F46E5' : '#E5E7EB'}`, background: i === 0 ? '#EEF2FF' : '#F9FAFB', color: i === 0 ? '#4F46E5' : '#6B7280',
-                                borderRadius: 8, padding: 10, textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, cursor: 'pointer'
-                            }}>
-                                {f}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: 11 }}>Generate Report</button>
-            </div>
-
-            <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <SectionTitle>Preview</SectionTitle>
-                    <Badge type="pending">PDF · Full Report</Badge>
-                </div>
-
-                <div style={{ background: '#F8F9FC', border: '1px solid #E5E7EB', borderRadius: 8, padding: 24, minHeight: 540 }}>
-                    <Shimmer h={32} w={200} />
-                    <div style={{ marginTop: 12 }}><Shimmer h={20} w={320} /></div>
-                    <div style={{ marginTop: 8, marginBottom: 24 }}><Shimmer h={14} w={240} /></div>
-
-                    <div style={{ marginBottom: 6 }}><Shimmer h={12} /></div>
-                    <div style={{ marginBottom: 6 }}><Shimmer h={12} w="92%" /></div>
-                    <div style={{ marginBottom: 20 }}><Shimmer h={12} w="97%" /></div>
-
-                    <div style={{ marginBottom: 20 }}><Shimmer h={180} label="Chart Area" /></div>
-
-                    <div style={{ marginBottom: 6 }}><Shimmer h={12} /></div>
-                    <div style={{ marginBottom: 6 }}><Shimmer h={12} w="85%" /></div>
-                    <div style={{ marginBottom: 6 }}><Shimmer h={12} w="94%" /></div>
-                    <div style={{ marginBottom: 24 }}><Shimmer h={12} w="88%" /></div>
-
-                    <div style={{ marginBottom: 20 }}><Shimmer h={120} label="Table Area" /></div>
-                </div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 16 }}>
-                    Preview updates when you adjust settings
-                </div>
-            </div>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151', width: 24, textAlign: 'right' }}>{cat.count}</span>
+              </div>
+            ))}
+          </div>
         </div>
-    </div>
-);
 
-
-const SettingsPage = () => (
-    <div>
-        <PageHeader
-            title="Settings"
-            subtitle="Configure scan parameters, notifications, API access, and team management"
-            actions={<><button className="btn-primary">Save Changes</button></>}
-        />
-
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20 }}>
-            {/* Left Nav */}
-            <div className="card" style={{ padding: 8 }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {[
-                        { l: "Scan Configuration", act: true },
-                        { l: "Notifications" },
-                        { l: "API Integration" },
-                        { l: "Team Management" }
-                    ].map((n, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, background: n.act ? '#EEF2FF' : 'transparent', color: n.act ? '#4F46E5' : '#6B7280', fontFamily: "'Inter', sans-serif", fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}>
-                            <span>{n.l}</span>
-                            {n.act ? null : <ChevronRight size={14} color="#D1D5DB" />}
-                        </div>
-                    ))}
+        {/* By Category Card */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>By Category</div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>247 total assets</div>
+          <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', marginTop: 16 }}>
+            {RISK_DATA.byCategory.map((cat, i) => (
+              <div key={i} style={{ width: barsAnimated ? cat.pct + '%' : '0%', background: cat.color, transition: `width 1s ease-out ${i * 0.08}s` }} title={`${cat.label}: ${cat.pct}%`} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 16 }}>
+            {RISK_DATA.byCategory.map((cat, i) => (
+              <div key={i} onMouseEnter={() => setHoveredCategory(cat.label)} onMouseLeave={() => setHoveredCategory(null)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #F9FAFB', cursor: 'pointer', borderRadius: 6, transition: 'background 0.1s', background: hoveredCategory === cat.label ? '#FAFAFA' : 'transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 5, background: cat.color }} />
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: hoveredCategory === cat.label ? 600 : 500, color: hoveredCategory === cat.label ? '#111827' : '#374151' }}>{cat.label}</span>
                 </div>
-            </div>
-
-            {/* Right Content */}
-            <div className="card">
-                <SectionTitle>General Scan Settings</SectionTitle>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 14 }}>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>Default Scan Depth</div>
-                        <select style={{ width: '100%' }}><option>Standard</option><option>Quick</option><option>Deep</option></select>
-                    </div>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>Scan Timeout (sec)</div>
-                        <input type="number" defaultValue="30" style={{ width: '100%' }} />
-                    </div>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>Max Concurrent Targets</div>
-                        <input type="number" defaultValue="10" style={{ width: '100%' }} />
-                    </div>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>Default Port Range</div>
-                        <input type="text" defaultValue="443, 8443, 4500" style={{ width: '100%' }} />
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: '#111827' }}>{cat.count}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 999, padding: '1px 6px' }}>{cat.pct}%</span>
+                  <div style={{ width: 40, height: 3, background: '#F3F4F6', borderRadius: 1.5 }}><div style={{ width: cat.pct + '%', height: '100%', background: cat.color, borderRadius: 1.5 }} /></div>
                 </div>
-
-                <div style={{ marginTop: 24 }}><SectionTitle>Scan Options</SectionTitle></div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {[
-                        { l: "Subdomain Enumeration", sub: "Discover all subdomains automatically", on: true },
-                        { l: "Deep Certificate Analysis", sub: "Full certificate chain validation", on: true },
-                        { l: "Aggressive Port Scanning", sub: "Scan all 65535 ports (slow)", on: false },
-                        { l: "Validate Cert Chains", sub: "Check full trust chain", on: true },
-                        { l: "Detect Hybrid PQC", sub: "Identify classical+PQC hybrid modes", on: true },
-                        { l: "Include Internal IPs", sub: "Extend scan to private IP ranges", on: false }
-                    ].map((o, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #F9FAFB' }}>
-                            <div>
-                                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 500, color: '#111827' }}>{o.l}</div>
-                                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>{o.sub}</div>
-                            </div>
-                            <div style={{ width: 40, height: 22, borderRadius: 11, background: o.on ? '#4F46E5' : '#E5E7EB', position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }}>
-                                <div style={{ position: 'absolute', top: 2, left: o.on ? 20 : 2, width: 18, height: 18, borderRadius: 9, background: 'white', transition: 'left 0.2s' }} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div style={{ marginTop: 24 }}><SectionTitle>Scheduled Scanning</SectionTitle></div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>Auto-scan Frequency</div>
-                        <select style={{ width: '100%' }}><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Manual</option></select>
-                    </div>
-                    <div>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151', marginBottom: 4 }}>Next Scheduled Scan</div>
-                        <input type="text" value="2026-03-13 02:00 IST" disabled style={{ width: '100%', background: '#F3F4F6', color: '#9CA3AF' }} />
-                    </div>
-                </div>
-            </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#374151' }}>Total</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#111827' }}>247 assets</span>
+          </div>
         </div>
+
+        {/* 6-Month Trend Card */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 12 }}>6-Month Trend</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={RISK_DATA.sixMonthTrend} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+              <defs><linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.1} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0} /></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontFamily: 'Inter', fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis domain={[60, 85]} tick={{ fontFamily: 'Inter', fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(val) => [val.toFixed(1), 'Risk Score']} labelStyle={{ color: '#111827', fontWeight: 600 }} cursor={{ stroke: '#E5E7EB' }} />
+              <Area type="monotone" dataKey="score" stroke="#EF4444" strokeWidth={2.5} fill="url(#scoreGrad)" dot={false} activeDot={{ r: 5, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }} animationDuration={1200} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <TrendingDown size={16} color="#10B981" />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#10B981' }}>↓ {RISK_DATA.lastImprovement} improvement from last month</span>
+            <span style={{ color: '#D1D5DB', margin: '0 4px' }}>·</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Target: &lt;50 by Q4 2026</span>
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, textAlign: 'center' }}>
+            {[['78.2', '#EF4444', '6 MONTHS AGO'], ['4.8', '#10B981', 'TOTAL DROP'], ['50', '#3B82F6', 'Q4 TARGET']].map(([v, c, l], i) => (
+              <div key={i}><div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: c }}>{v}</div><div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', marginTop: 2 }}>{l}</div></div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* HNDL Calculator */}
+      <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: '#111827' }}>Harvest Now, Decrypt Later — Exposure Calculator</div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Estimate total sensitive data at risk based on estimated CRQC emergence timeline</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr', gap: 32, marginTop: 20, alignItems: 'start' }}>
+          {/* Left */}
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>Encrypted data on record since</div>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: '#111827' }}>2017</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#6B7280', marginLeft: 8 }}>({yearsExposed} years exposed)</span>
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF', marginBottom: 12 }}>Estimated CRQC emergence</div>
+              <style>{sliderStyle}</style>
+              <input type="range" className="crqc-slider" min={2028} max={2035} step={1} value={crqcYear} onChange={e => setCrqcYear(Number(e.target.value))} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                {[2028,2029,2030,2031,2032,2033,2034,2035].map(y => <span key={y} style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: '#9CA3AF' }}>{y}</span>)}
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 36, fontWeight: 800, color: currentHNDL.color }}>{crqcYear}</span>
+                <span style={{ marginLeft: 8, background: currentHNDL.color + '15', color: currentHNDL.color, border: `1px solid ${currentHNDL.color}30`, borderRadius: 999, padding: '4px 12px', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{currentHNDL.risk}</span>
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280', marginTop: 8 }}>{yearsExposed} years of encrypted data potentially decryptable in {crqcYear - 2026} years</div>
+            </div>
+          </div>
+          {/* Middle */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[['DATA VOLUME AT RISK', '~' + currentHNDL.dataAtRisk, '#EF4444'], ['SENSITIVE RECORDS', currentHNDL.records, '#F97316'], ['YEARS OF INTERCEPTION', yearsExposed + ' years', '#F59E0B']].map(([l, v, c], i) => (
+              <div key={i} style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: '#9CA3AF', letterSpacing: '0.08em', marginBottom: 6 }}>{l}</div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: c, transition: 'color 0.2s' }}>{v}</div>
+              </div>
+            ))}
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', lineHeight: 1.5, fontStyle: 'italic', marginTop: 4 }}>* Estimates based on observed traffic patterns and known digital banking usage data</div>
+          </div>
+          {/* Right — Timeline */}
+          <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 16, minHeight: 200 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 14 }}>HNDL Timeline 2017 → {crqcYear}</div>
+            <div style={{ position: 'relative', paddingLeft: 24 }}>
+              <div style={{ position: 'absolute', left: 8, top: 0, bottom: 0, width: 2, background: 'linear-gradient(to bottom, #10B981, #F59E0B, #EF4444)', borderRadius: 1 }} />
+              {HNDL_DATA.timeline.filter(e => e.year <= crqcYear + 1).map((ev, i) => {
+                const dotColors = { start: '#10B981', milestone: '#3B82F6', warning: '#F59E0B', positive: '#10B981', current: '#4F46E5', threat: '#EF4444' };
+                const isCurrent = ev.type === 'current'; const isThreat = ev.type === 'threat';
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: -20, top: 2, width: 10, height: 10, borderRadius: 5, background: dotColors[ev.type], border: '2px solid #fff', boxShadow: isCurrent ? '0 0 0 3px rgba(79,70,229,0.3)' : 'none' }} className={isCurrent ? 'dot-pulse' : ''} />
+                    <div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, color: isCurrent ? '#4F46E5' : isThreat ? '#DC2626' : '#9CA3AF' }}>{ev.year}</div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: isCurrent || isThreat ? 600 : 500, color: isCurrent ? '#111827' : isThreat ? '#DC2626' : '#374151', marginTop: 1 }}>{isThreat ? '⚠ ' : ''}{ev.event}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {crqcYear < 2031 && (
+              <div style={{ background: '#FEF2F2', borderRadius: 6, padding: '8px 12px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertTriangle size={12} color="#DC2626" />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#DC2626' }}>Earlier CRQC = more data at risk</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ROW 3: Matrix + Top Assets */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Risk Matrix */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Risk Matrix</span>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[['Critical','#EF4444'],['High','#F97316'],['Medium','#F59E0B'],['PQC Ready','#3B82F6'],['Safe','#10B981']].map(([l,c],i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 4, background: c }} /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280' }}>{l}</span></div>
+              ))}
+            </div>
+          </div>
+          <div style={{ position: 'relative', height: 320, border: '1px solid #F3F4F6', borderRadius: 8, overflow: 'hidden' }}>
+            {/* Quadrant backgrounds */}
+            <div style={{ position: 'absolute', top: 0, left: '50%', right: 0, bottom: '50%', background: 'rgba(239,68,68,0.04)' }}><span style={{ position: 'absolute', top: 6, right: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(239,68,68,0.4)' }}>CRITICAL ZONE</span></div>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: '50%', bottom: '50%', background: 'rgba(245,158,11,0.04)' }}><span style={{ position: 'absolute', top: 6, left: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(245,158,11,0.4)' }}>MONITOR</span></div>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', right: 0, bottom: 0, background: 'rgba(245,158,11,0.04)' }}><span style={{ position: 'absolute', bottom: 6, right: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(245,158,11,0.4)' }}>WATCH</span></div>
+            <div style={{ position: 'absolute', top: '50%', left: 0, right: '50%', bottom: 0, background: 'rgba(16,185,129,0.04)' }}><span style={{ position: 'absolute', bottom: 6, left: 6, fontFamily: "'Inter', sans-serif", fontSize: 9, color: 'rgba(16,185,129,0.4)' }}>SAFE ZONE</span></div>
+            <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#F3F4F6' }} />
+            <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: '#F3F4F6' }} />
+            {/* Dots */}
+            {RISK_MATRIX_ASSETS.map((a, i) => (
+              <div key={i} onMouseEnter={() => setMatrixTooltip(a)} onMouseLeave={() => setMatrixTooltip(null)}
+                style={{ position: 'absolute', left: a.x + '%', bottom: a.y + '%', width: a.r * 2, height: a.r * 2, borderRadius: '50%', background: (matrixColors[a.status] || '#999') + 'CC', border: `2px solid ${matrixColors[a.status] || '#999'}`, cursor: 'pointer', transform: 'translate(-50%, 50%)', transition: 'transform 0.15s', zIndex: matrixTooltip?.domain === a.domain ? 10 : 1, ...(matrixTooltip?.domain === a.domain ? { transform: 'translate(-50%, 50%) scale(1.4)' } : {}) }} />
+            ))}
+            {/* Axes */}
+            <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>Likelihood of Quantum Attack →</div>
+            <div style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%) rotate(-90deg)', fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF', whiteSpace: 'nowrap' }}>Business Impact →</div>
+            {/* Tooltip */}
+            {matrixTooltip && (
+              <div style={{ position: 'absolute', top: 8, right: 8, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 20, minWidth: 200 }}>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: '#111827' }}>{matrixTooltip.domain}</div>
+                <div style={{ marginTop: 4 }}><Badge type={matrixTooltip.status} /></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', marginTop: 8 }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Likelihood:</span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151' }}>{matrixTooltip.x}%</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>Impact:</span><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#374151' }}>{matrixTooltip.y}%</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Critical Assets */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>Top Critical Assets</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#4F46E5', cursor: 'pointer' }} onClick={() => nav('discovery')}>View all →</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {TOP_CRITICAL_ASSETS.map((a, i) => (
+              <div key={i} onClick={() => nav('tls-analyzer')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: i < TOP_CRITICAL_ASSETS.length - 1 ? '1px solid #F9FAFB' : 'none', cursor: 'pointer', borderRadius: 8, transition: 'background 0.1s' }} onMouseOver={e => e.currentTarget.style.background = '#FAFAFA'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                <div style={{ width: 24, textAlign: 'right', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 800, color: '#E5E7EB' }}>{a.rank}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.domain}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>{a.exposure}</div>
+                </div>
+                <div style={{ width: 64, height: 3, background: '#F3F4F6', borderRadius: 1.5, flexShrink: 0 }}>
+                  <div style={{ width: barsAnimated ? a.score + '%' : '0%', height: '100%', background: getScoreColor(a.score), borderRadius: 1.5, transition: `width 800ms ease-out ${i * 80}ms` }} />
+                </div>
+                <Badge type={a.status} />
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280' }}>36 critical · 72 high risk</span>
+            <button onClick={() => nav('remediation')} style={{ background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 6, padding: '5px 12px', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Remediate All →</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderAlgorithmAnalysis = () => (
+    <div key="algo" className="page-animate">
+      <div style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', gap: 12 }}>
+        <Info size={20} color="#4F46E5" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#111827' }}>Quantum Algorithm Vulnerability Analysis</div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280', marginTop: 2 }}>Shows which cryptographic algorithms are vulnerable to Shor's Algorithm (key systems) and Grover's Algorithm (symmetric systems)</div>
+        </div>
+      </div>
+      <div className="card" style={{ padding: 0, marginBottom: 20 }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead><tr><th>ALGORITHM</th><th>VULNERABLE TO SHOR'S</th><th>VULNERABLE TO GROVER'S</th><th>NIST RECOMMENDATION</th><th>ACTION</th></tr></thead>
+            <tbody>
+              {ALGO_VULN_TABLE.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: '#374151' }}>{r.algo}</td>
+                  <td><div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{r.shors ? <><XCircle size={18} color="#DC2626" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#DC2626' }}>YES</span></> : <><CheckCircle size={18} color="#10B981" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#10B981' }}>NO</span></>}</div></td>
+                  <td><div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{r.grovers ? <><XCircle size={18} color="#DC2626" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#DC2626' }}>YES</span></> : <><CheckCircle size={18} color="#10B981" /><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: '#10B981' }}>NO</span></>}</div></td>
+                  <td style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: r.nistrec.startsWith('Replace') ? '#DC2626' : r.nistrec.startsWith('Upgrade') || r.nistrec.startsWith('Use') ? '#F59E0B' : '#10B981' }}>{r.nistrec}</td>
+                  <td>{r.urgent ? <span style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 999, padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600 }}>Immediate</span> : <span style={{ background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', borderRadius: 999, padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600 }}>Acceptable</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Algorithms by Quantum Safety</div>
+          <div style={{ position: 'relative' }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart><Pie data={[{ name: 'Vulnerable', value: 210 }, { name: 'Safe', value: 37 }]} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value" startAngle={90} endAngle={-270} animationDuration={800}><Cell fill="#EF4444" /><Cell fill="#10B981" /></Pie><Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12 }} /></PieChart>
+            </ResponsiveContainer>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, color: '#EF4444' }}>15%</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#9CA3AF' }}>PQC Ready</div>
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Key Exchange Methods in Use</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={KEY_EXCHANGE_DIST_RISK} layout="vertical" margin={{ top: 0, right: 20, left: 80, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+              <XAxis type="number" tick={{ fontFamily: 'Inter', fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontFamily: 'JetBrains Mono', fontSize: 10, fill: '#374151' }} axisLine={false} tickLine={false} width={75} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, fontFamily: 'Inter', fontSize: 12 }} />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={14}>{KEY_EXCHANGE_DIST_RISK.map((e, i) => <Cell key={i} fill={e.color} fillOpacity={0.85} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
-);
+  );
+
+  const renderAssetRanking = () => {
+    const sorted = [...ALL_CBOM_COMPONENTS].sort((a, b) => b.riskScore - a.riskScore);
+    const filt = rankSearch.trim() ? sorted.filter(c => c.asset.toLowerCase().includes(rankSearch.toLowerCase()) || c.id.toLowerCase().includes(rankSearch.toLowerCase())) : sorted;
+    const perPage = 15; const tp = Math.ceil(filt.length / perPage); const pd = filt.slice((rankPage - 1) * perPage, rankPage * perPage);
+    const getRankColor = (r) => { if (r <= 10) return '#EF4444'; if (r <= 36) return '#F97316'; if (r <= 108) return '#F59E0B'; return '#9CA3AF'; };
+    return (
+      <div key="ranking" className="page-animate">
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 700, color: '#111827' }}>All Assets — Risk Ranked</span>
+              <span style={{ background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE', borderRadius: 999, fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, padding: '3px 10px' }}>{filt.length} assets</span>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} color="#9CA3AF" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 10, pointerEvents: 'none' }} />
+              <input type="text" placeholder="Search assets..." value={rankSearch} onChange={e => { setRankSearch(e.target.value); setRankPage(1); }} style={{ width: 220, paddingLeft: 34 }} />
+            </div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table><thead><tr><th style={{ width: 60 }}>RANK</th><th>ASSET</th><th style={{ width: 80 }}>TYPE</th><th style={{ width: 80 }}>TLS VER</th><th style={{ width: 160 }}>ALGORITHM</th><th style={{ width: 100, textAlign: 'right' }}>RISK SCORE</th><th style={{ width: 120 }}>STATUS</th><th style={{ width: 90 }}>ACTION</th></tr></thead>
+              <tbody>{pd.map((c, i) => { const rank = (rankPage - 1) * perPage + i + 1; return (
+                <tr key={c.id}><td style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: getRankColor(rank) }}>{rank}</td><td style={{ fontWeight: 600, color: '#111827' }}>{c.asset}</td><td>{c.type}</td><td><span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, background: c.tlsVer === '1.3' ? '#ECFDF5' : c.tlsVer === '1.2' ? '#FFFBEB' : '#FEF2F2', color: c.tlsVer === '1.3' ? '#059669' : c.tlsVer === '1.2' ? '#D97706' : '#DC2626', border: `1px solid ${c.tlsVer === '1.3' ? '#A7F3D0' : c.tlsVer === '1.2' ? '#FDE68A' : '#FECACA'}`, borderRadius: 999, padding: '2px 8px' }}>{c.tlsVer}</span></td><td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>{c.algorithm}</td><td style={{ textAlign: 'right', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 800, color: getScoreColor(c.riskScore) }}>{c.riskScore}</td><td><Badge type={c.status} /></td><td><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#4F46E5', cursor: 'pointer' }} onClick={() => nav('tls-analyzer')}>Analyze →</span></td></tr>
+              ); })}</tbody>
+            </table>
+          </div>
+          <div style={{ padding: '14px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#9CA3AF' }}>Showing {(rankPage-1)*perPage+1}–{Math.min(rankPage*perPage,filt.length)} of {filt.length}</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setRankPage(p => Math.max(1, p-1))} disabled={rankPage===1} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: rankPage===1?'not-allowed':'pointer', opacity: rankPage===1?0.4:1 }}><ChevronLeft size={14} color="#6B7280" /></button>
+              {Array.from({ length: Math.min(tp, 5) }, (_, i) => i + 1).map(p => <button key={p} onClick={() => setRankPage(p)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: rankPage===p?'#4F46E5':'#F9FAFB', color: rankPage===p?'#fff':'#6B7280', border: rankPage===p?'none':'1px solid #E5E7EB', borderRadius: 6, fontFamily: "'Inter', sans-serif", fontSize: 12, cursor: 'pointer' }}>{p}</button>)}
+              {tp > 5 && <button style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, fontFamily: "'Inter', sans-serif", fontSize: 12 }}>...</button>}
+              <button onClick={() => setRankPage(p => Math.min(tp, p+1))} disabled={rankPage===tp} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, cursor: rankPage===tp?'not-allowed':'pointer', opacity: rankPage===tp?0.4:1 }}><ChevronRight size={14} color="#6B7280" /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <PageHeader title="Quantum Risk Assessment" subtitle="Organization-wide quantum vulnerability scoring and HNDL exposure analysis"
+        actions={<><button className="btn-ghost" onClick={() => setShowConfigModal(true)}>Configure Parameters</button><button className="btn-primary" onClick={handleGenerateReport} disabled={reportGenerating}>{reportGenerating ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</> : <>↓ Risk Report</>}</button></>} />
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E5E7EB', marginBottom: 20 }}>
+        <button style={tabStyle('overview')} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button style={tabStyle('algorithm-analysis')} onClick={() => setActiveTab('algorithm-analysis')}>Algorithm Analysis</button>
+        <button style={tabStyle('asset-ranking')} onClick={() => setActiveTab('asset-ranking')}>Asset Ranking <span style={{ background: '#F3F4F6', color: '#6B7280', borderRadius: 999, padding: '1px 6px', fontFamily: "'Inter', sans-serif", fontSize: 10, marginLeft: 4 }}>247</span></button>
+      </div>
+
+      {activeTab === 'overview' && renderOverview()}
+      {activeTab === 'algorithm-analysis' && renderAlgorithmAnalysis()}
+      {activeTab === 'asset-ranking' && renderAssetRanking()}
+
+      {/* Config Modal */}
+      {showConfigModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowConfigModal(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 480, boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 20 }}>Configure Risk Parameters</div>
+            {[['CRQC Emergence Year', <input type="number" value={configCrqc} onChange={e => setConfigCrqc(Number(e.target.value))} min={2028} max={2040} style={{ width: '100%' }} />],
+              ['Sensitivity Level', <select style={{ width: '100%' }}><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select>],
+              ['Include Internal Assets', <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 36, height: 20, borderRadius: 10, background: '#4F46E5', cursor: 'pointer', padding: 2 }}><div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', marginLeft: 16 }} /></div><span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151' }}>Enabled</span></div>],
+              ['Risk Model', <select style={{ width: '100%' }}><option>Conservative</option><option selected>Standard</option><option>Aggressive</option></select>]
+            ].map(([label, input], i) => (
+              <div key={i} style={{ marginBottom: 16 }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</div>
+                {input}
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn-ghost" onClick={() => setShowConfigModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={() => { setCrqcYear(configCrqc); setShowConfigModal(false); showToast('Parameters applied'); }}>Apply Parameters</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.2s ease-out', zIndex: 1000 }}>
+          <CheckCircle size={16} color="#10B981" />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#374151', fontWeight: 500 }}>{toast}</span>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+};
+
+
+/* REPORTS PAGE — DATA CONSTANTS */
+const REPORT_TYPES = [
+  { id: 'full', title: 'Full Security Report', subtitle: 'All sections, complete detail', icon: 'FileText', sections: ['cbom', 'tls', 'risk', 'remediation', 'compliance'], estimatedPages: 24, estimatedSize: '2.4 MB' },
+  { id: 'executive', title: 'Executive Summary', subtitle: '2-page overview for management', icon: 'BarChart2', sections: ['risk', 'compliance'], estimatedPages: 2, estimatedSize: '180 KB' },
+  { id: 'technical', title: 'Technical Deep Dive', subtitle: 'Raw data, all cipher details', icon: 'Terminal', sections: ['cbom', 'tls', 'remediation'], estimatedPages: 38, estimatedSize: '4.1 MB' },
+  { id: 'compliance', title: 'Compliance Report', subtitle: 'Framework gap analysis', icon: 'ClipboardCheck', sections: ['compliance', 'risk'], estimatedPages: 12, estimatedSize: '980 KB' },
+];
+
+const REPORT_SECTIONS = [
+  { id: 'cbom', label: 'CBOM Inventory', defaultOn: true },
+  { id: 'tls', label: 'TLS Analysis Results', defaultOn: true },
+  { id: 'risk', label: 'Quantum Risk Assessment', defaultOn: true },
+  { id: 'remediation', label: 'Remediation Plan', defaultOn: true },
+  { id: 'compliance', label: 'Compliance Mapping', defaultOn: true },
+  { id: 'rawdata', label: 'Raw Data Export', defaultOn: false },
+];
+
+const EXPORT_FORMATS = [
+  { id: 'pdf', label: 'PDF', icon: 'FileText' },
+  { id: 'json', label: 'JSON', icon: 'Braces' },
+  { id: 'csv', label: 'CSV', icon: 'Table' },
+  { id: 'xml', label: 'XML', icon: 'Code' },
+];
+
+const SCHEDULED_REPORTS = [
+  { id: 'SCH-001', name: 'Weekly Full Security Report', type: 'full', frequency: 'Weekly', nextRun: 'Mar 19, 2026 — 02:00 IST', format: 'PDF', recipients: ['ciso@pnb.co.in', 'security@pnb.co.in'], active: true },
+  { id: 'SCH-002', name: 'Monthly Executive Summary', type: 'executive', frequency: 'Monthly', nextRun: 'Apr 01, 2026 — 08:00 IST', format: 'PDF', recipients: ['board@pnb.co.in'], active: true },
+  { id: 'SCH-003', name: 'Daily Compliance Check', type: 'compliance', frequency: 'Daily', nextRun: 'Mar 13, 2026 — 00:00 IST', format: 'JSON', recipients: ['compliance@pnb.co.in'], active: false },
+];
+
+const RECENT_REPORTS = [
+  { id: 'RPT-001', name: 'Full Security Report — Mar 12', type: 'full', generatedAt: 'Mar 12, 2026 18:00', format: 'PDF', size: '2.3 MB', pages: 24, generatedBy: 'raj.kumar' },
+  { id: 'RPT-002', name: 'Executive Summary — Mar 05', type: 'executive', generatedAt: 'Mar 05, 2026 09:00', format: 'PDF', size: '175 KB', pages: 2, generatedBy: 'admin' },
+  { id: 'RPT-003', name: 'Compliance Report — Feb 28', type: 'compliance', generatedAt: 'Feb 28, 2026 17:30', format: 'PDF', size: '960 KB', pages: 11, generatedBy: 'deepa.singh' },
+  { id: 'RPT-004', name: 'CBOM Export — Feb 26', type: 'technical', generatedAt: 'Feb 26, 2026 14:00', format: 'JSON', size: '1.2 MB', pages: null, generatedBy: 'raj.kumar' },
+];
+
+
+/* REPORTS PAGE — Component */
+const ReportsPage = ({ nav }) => {
+  const [reportType, setReportType] = useState('full');
+  const [dateFrom, setDateFrom] = useState('2026-02-12');
+  const [dateTo, setDateTo] = useState('2026-03-12');
+  const [sections, setSections] = useState(() => {
+    const map = {}; REPORT_SECTIONS.forEach(s => map[s.id] = s.defaultOn); return map;
+  });
+  const [exportFormat, setExportFormat] = useState('pdf');
+  const [generating, setGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState(0);
+  const [scheduledModalOpen, setScheduledModalOpen] = useState(false);
+  const [recentReportsOpen, setRecentReportsOpen] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const toggleSection = (id) => {
+    setSections(prev => ({ ...prev, [id]: !prev[id] }));
+    setPreviewKey(k => k + 1);
+  };
+
+  useEffect(() => {
+    const type = REPORT_TYPES.find(t => t.id === reportType);
+    if (type) {
+      const newSections = {};
+      REPORT_SECTIONS.forEach(s => newSections[s.id] = type.sections.includes(s.id));
+      setSections(newSections);
+      setPreviewKey(k => k + 1);
+    }
+  }, [reportType]);
+
+  const currentType = REPORT_TYPES.find(t => t.id === reportType);
+  const activeSectionsCount = Object.values(sections).filter(Boolean).length;
+
+  const showToast = (msg, type='success') => { setToastMessage({msg, type}); setTimeout(() => setToastMessage(null), 3000); };
+
+  const downloadReport = () => {
+    let content = '', filename = '';
+    if (exportFormat === 'pdf') { content = 'QuantumShield PDF Export Simulation\n\nReport Type: ' + currentType.title; filename = 'pnb-quantum-security-report.txt'; }
+    else if (exportFormat === 'json') { content = JSON.stringify({ metadata: { type: currentType.id, format: exportFormat, generated: new Date().toISOString() }, summary: { totalAssets: 247, riskScore: 67.4 } }, null, 2); filename = 'pnb-cbom-report.json'; }
+    else if (exportFormat === 'csv') { content = 'Asset,Vulnerability,Complexity,Status\ncorp.pnbindia.in,RSA Key Exchange,Hard,Pending'; filename = 'pnb-security-report.csv'; }
+    else { content = '<?xml version="1.0"?><report><type>'+currentType.title+'</type></report>'; filename = 'pnb-report.xml'; }
+    
+    const blob = new Blob([content], {type: 'text/plain'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    
+    setGenerating(false); setGenerationStep(0);
+    showToast(`Report downloaded successfully: ${exportFormat.toUpperCase()} · ${currentType.estimatedPages} pages`);
+  };
+
+  const handleGenerate = () => {
+    if(new Date(dateTo) < new Date(dateFrom)) { showToast('End date must be after start date', 'error'); return; }
+    setGenerating(true); setGenerationStep(1);
+    let step = 1;
+    const interval = setInterval(() => {
+      step++; setGenerationStep(step);
+      if (step === 6) { clearInterval(interval); setTimeout(downloadReport, 600); }
+    }, 600);
+  };
+
+  const GENERATION_STEPS = [
+    "Collecting asset data...",
+    "Analyzing cryptographic inventory...",
+    "Running compliance checks...",
+    "Generating charts and tables...",
+    `Compiling ${exportFormat.toUpperCase()} document...`
+  ];
+
+  return (
+    <div style={{position:'relative'}}>
+      <PageHeader title="Reports & Export" subtitle="Generate, schedule, and export cryptographic audit reports"
+        actions={<><button className="btn-ghost" onClick={()=>setScheduledModalOpen(true)}>Scheduled Reports</button>
+        <button className="btn-primary" onClick={handleGenerate} disabled={generating}>{generating?<><RefreshCw size={14} style={{animation:'spin 1s linear infinite'}}/> Generating...</>:<>↓ Generate Now</>}</button></>} />
+
+      <div style={{display:'grid',gridTemplateColumns:'400px 1fr',gap:20,marginBottom:20}}>
+        {/* LEFT PANEL: BUILDER */}
+        <div className="card" style={{padding:20,display:'flex',flexDirection:'column',gap:20}}>
+          
+          <div>
+            <SectionTitle>Report Type</SectionTitle>
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:10}}>
+              {REPORT_TYPES.map(type => {
+                const sel = reportType === type.id;
+                return (
+                  <div key={type.id} onClick={()=>setReportType(type.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:8,border:sel?'1.5px solid #4F46E5':'1px solid #E5E7EB',background:sel?'#F5F3FF':'white',boxShadow:sel?'0 0 0 3px rgba(79,70,229,0.06)':'none',cursor:'pointer',transition:'all 0.15s'}} onMouseOver={e=>!sel&&(e.currentTarget.style.background='#FAFAFA',e.currentTarget.style.borderColor='#D1D5DB')} onMouseOut={e=>!sel&&(e.currentTarget.style.background='white',e.currentTarget.style.borderColor='#E5E7EB')}>
+                    <div style={{flexShrink:0,width:20,height:20,borderRadius:10,border:`2px solid ${sel?'#4F46E5':'#D1D5DB'}`,display:'flex',alignItems:'center',justifyContent:'center',background:'white'}}>
+                      <div style={{width:10,height:10,borderRadius:5,background:'#4F46E5',transform:`scale(${sel?1:0})`,transition:'transform 0.15s ease'}}/>
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,color:sel?'#111827':'#374151'}}>{type.title}</div>
+                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#9CA3AF',marginTop:1}}>{type.subtitle}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <SectionTitle>Date Range</SectionTitle>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
+              <div style={{display:'flex',flexDirection:'column'}}><label style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:500,color:'#6B7280',marginBottom:4}}>From</label><input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setPreviewKey(k=>k+1);}} style={{background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:8,padding:'8px 12px',fontFamily:"'Inter',sans-serif",fontSize:13,color:'#374151',outline:'none'}} onFocus={e=>e.target.style.borderColor='#4F46E5'} onBlur={e=>e.target.style.borderColor='#E5E7EB'}/></div>
+              <div style={{display:'flex',flexDirection:'column'}}><label style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:500,color:'#6B7280',marginBottom:4}}>To</label><input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setPreviewKey(k=>k+1);}} style={{background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:8,padding:'8px 12px',fontFamily:"'Inter',sans-serif",fontSize:13,color:'#374151',outline:'none'}} onFocus={e=>e.target.style.borderColor='#4F46E5'} onBlur={e=>e.target.style.borderColor='#E5E7EB'}/>
+                {new Date(dateTo) < new Date(dateFrom) && <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#EF4444',marginTop:4}}>End date must be after start date</span>}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style={{display:'flex',alignItems:'center'}}>
+              <SectionTitle>Include Sections</SectionTitle>
+              <span style={{background:'#F3F4F6',color:'#6B7280',borderRadius:999,fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:500,padding:'2px 8px',marginLeft:6}}>{activeSectionsCount}/6 selected</span>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:0,marginTop:10}}>
+              {REPORT_SECTIONS.map(sec => {
+                const checked = sections[sec.id];
+                return (
+                  <div key={sec.id} onClick={()=>toggleSection(sec.id)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 4px',borderBottom:'1px solid #F9FAFB',cursor:'pointer',borderRadius:4,transition:'0.1s'}} onMouseOver={e=>e.currentTarget.style.background='#FAFAFA'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                    <div style={{width:18,height:18,borderRadius:4,background:checked?'#4F46E5':'white',border:`1.5px solid ${checked?'#4F46E5':'#D1D5DB'}`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.12s'}}>
+                      {checked && <Check size={12} color="white" style={{transform:'scale(1)'}}/>}
+                    </div>
+                    <span style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,color:checked?'#374151':'#6B7280'}}>{sec.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <SectionTitle>Export Format</SectionTitle>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10}}>
+              {EXPORT_FORMATS.map(fmt => {
+                const sel = exportFormat === fmt.id;
+                return (
+                  <div key={fmt.id} onClick={()=>{setExportFormat(fmt.id);setPreviewKey(k=>k+1);}} style={{padding:10,borderRadius:8,border:`${sel?'1.5px':'1px'} solid ${sel?'#4F46E5':'#E5E7EB'}`,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,color:sel?'#4F46E5':'#374151',background:'white',boxShadow:sel?'0 0 0 3px rgba(79,70,229,0.08)':'none',transition:'all 0.12s'}} onMouseOver={e=>!sel&&(e.currentTarget.style.background='#F9FAFB',e.currentTarget.style.borderColor='#D1D5DB')} onMouseOut={e=>!sel&&(e.currentTarget.style.background='white',e.currentTarget.style.borderColor='#E5E7EB')}>
+                    {fmt.icon==='FileText'?<FileText size={16}/>:fmt.icon==='Braces'?<Braces size={16}/>:fmt.icon==='Table'?<Table size={16}/>:<Code size={16}/>}
+                    {fmt.label}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{marginTop:'auto'}}>
+            <button style={{width:'100%',padding:12,background:generating?'#6366F1':'#4F46E5',color:'white',border:'none',borderRadius:8,cursor:generating?'not-allowed':'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:14,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'background 0.15s'}} onClick={handleGenerate} disabled={generating}>
+              {generating ? <><RefreshCw size={16} style={{animation:'spin 1s linear infinite'}}/> Generating...</> : 'Generate Report'}
+            </button>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+              <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#9CA3AF'}}>~{currentType.estimatedPages} pages</span>
+              <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#9CA3AF'}}>{currentType.estimatedSize}</span>
+            </div>
+            <button style={{background:'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontFamily:"'Inter',sans-serif",fontSize:12,color:'#4F46E5',marginTop:16}} onClick={()=>setRecentReportsOpen(true)} onMouseOver={e=>e.currentTarget.style.textDecoration='underline'} onMouseOut={e=>e.currentTarget.style.textDecoration='none'}>
+              <Clock size={13}/> View recent reports (4)
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT PANEL: PREVIEW */}
+        <div className="card" style={{padding:20,minHeight:600,display:'flex',flexDirection:'column'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:15,fontWeight:700,color:'#111827'}}>Preview</span>
+            <span style={{background:'#F3F4F6',border:'1px solid #E5E7EB',borderRadius:6,padding:'4px 12px',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,color:'#374151'}}>{exportFormat.toUpperCase()} · {currentType.title}</span>
+          </div>
+
+          <div style={{flex:1,background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:8,padding:24,overflow:'hidden',position:'relative',display:'flex',flexDirection:'column'}}>
+            
+            {/* DOCUMENT SIMULATION */}
+            <div key={previewKey} className="page-animate" style={{flex:1,display:'flex',flexDirection:'column'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+                <div><div className="shimmer-block" style={{height:12,width:80,marginBottom:6}}/><div className="shimmer-block" style={{height:8,width:120}}/></div>
+                <div className="shimmer-block" style={{height:10,width:60}}/>
+              </div>
+              <div className="shimmer-block" style={{height:20,width:280,marginBottom:4}}/>
+              <div className="shimmer-block" style={{height:12,width:180,marginBottom:20}}/>
+
+              {(sections.risk || sections.cbom) && <><div className="shimmer-block" style={{height:10,width:140,marginBottom:10}}/><div className="shimmer-block" style={{height:8,width:'90%',marginBottom:4}}/><div className="shimmer-block" style={{height:8,width:'95%',marginBottom:4}}/><div className="shimmer-block" style={{height:8,width:'70%',marginBottom:16}}/></>}
+              
+              {sections.risk && <div style={{height:120,width:'100%',background:'#E5E7EB',borderRadius:4,marginBottom:16,position:'relative',animation:'shimmer 2s infinite linear',backgroundImage:'linear-gradient(to right, #E5E7EB 0%, #F3F4F6 20%, #E5E7EB 40%, #E5E7EB 100%)',backgroundSize:'1000px 100%'}}>
+                <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#9CA3AF',position:'absolute',top:12,left:12}}>Chart Area</span>
+              </div>}
+
+              {(sections.tls || sections.cbom) && <div style={{marginBottom:16}}>{Array.from({length:5}).map((_,i)=><div key={i} className="shimmer-block" style={{height:8,width:`${85+Math.random()*15}%`,marginBottom:12}}/>)}
+                <div style={{height:100,width:'100%',background:'#E5E7EB',borderRadius:4,position:'relative',animation:'shimmer 2s infinite linear',backgroundImage:'linear-gradient(to right, #E5E7EB 0%, #F3F4F6 20%, #E5E7EB 40%, #E5E7EB 100%)',backgroundSize:'1000px 100%'}}>
+                  <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#9CA3AF',position:'absolute',top:12,left:12}}>Table Area</span>
+                </div>
+              </div>}
+
+              {sections.compliance && <><div className="shimmer-block" style={{height:10,width:120,marginBottom:8}}/><div className="shimmer-block" style={{height:8,width:'85%',marginBottom:6}}/><div className="shimmer-block" style={{height:8,width:'65%',marginBottom:16}}/></>}
+              {sections.remediation && <><div className="shimmer-block" style={{height:10,width:160,marginBottom:8}}/><div className="shimmer-block" style={{height:8,width:'95%',marginBottom:6}}/><div className="shimmer-block" style={{height:8,width:'80%',marginBottom:16}}/></>}
+
+              <div style={{marginTop:'auto',paddingTop:16,borderTop:'1px solid #E5E7EB',display:'flex',justifyContent:'space-between'}}>
+                <div className="shimmer-block" style={{height:8,width:160}}/><div className="shimmer-block" style={{height:8,width:40}}/>
+              </div>
+            </div>
+
+            {/* GENERATION OVERLAY */}
+            {generating && (
+              <div className="page-animate" style={{position:'absolute',inset:0,background:'rgba(255,255,255,0.9)',backdropFilter:'blur(4px)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,zIndex:10,borderRadius:8}}>
+                <div style={{position:'relative',width:80,height:80}}>
+                  <svg viewBox="0 0 100 100" style={{width:'100%',height:'100%',transform:'rotate(-90deg)'}}>
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#EEF2FF" strokeWidth="8"/>
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#4F46E5" strokeWidth="8" strokeDasharray="251" strokeDashoffset={251 - (251*generationStep*20)/100} style={{transition:'stroke-dashoffset 0.5s ease'}}/>
+                  </svg>
+                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:16,fontWeight:700,color:'#4F46E5'}}>{generationStep*20}%</div>
+                </div>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,color:'#374151',textAlign:'center'}}>{GENERATION_STEPS[Math.min(generationStep-1,4)]}</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:10}}>
+                  {GENERATION_STEPS.map((st,i)=>{
+                    const done=generationStep>i+1; const pend=generationStep<i+1;
+                    return (
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:8,opacity:pend?0.4:1,transition:'opacity 0.3s'}}>
+                        {done?<CheckCircle size={14} color="#10B981" style={{animation:'scaleIn 0.2s'}}/>:<div style={{width:14,height:14,borderRadius:7,border:pend?'1px solid #D1D5DB':'1px dashed #4F46E5'}}/>}
+                        <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:done?'#6B7280':pend?'#9CA3AF':'#374151'}}>{st}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{width:200,height:4,background:'#EEF2FF',borderRadius:2,marginTop:10,overflow:'hidden'}}><div style={{height:'100%',background:'#4F46E5',width:`${(generationStep/5)*100}%`,transition:'width 0.5s ease'}}/></div>
+              </div>
+            )}
+          </div>
+          <div style={{textAlign:'center',marginTop:12,fontFamily:"'Inter',sans-serif",fontSize:12,color:'#9CA3AF'}}>Preview updates when you adjust settings</div>
+        </div>
+      </div>
+
+      {/* SCHEDULED MODAL */}
+      {scheduledModalOpen && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.4)',backdropFilter:'blur(4px)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div className="card" style={{width:620,borderRadius:16,boxShadow:'0 20px 60px rgba(0,0,0,0.15)',padding:'24px',animation:'slideInUp 0.2s ease-out'}}>
+            <Calendar size={24} color="#4F46E5"/>
+            <h3 style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:18,fontWeight:700,color:'#111827',marginTop:12}}>Scheduled Reports</h3>
+            <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'#9CA3AF',marginTop:4}}>Automated report generation and delivery</p>
+            
+            <div style={{display:'flex',flexDirection:'column',gap:10,margin:'20px 0'}}>
+              {SCHEDULED_REPORTS.map(sch=>{
+                const typeColors = {full:'#4F46E5',executive:'#3B82F6',technical:'#F59E0B',compliance:'#8B5CF6'};
+                const tc = typeColors[sch.type] || '#4F46E5';
+                return (
+                  <div key={sch.id} style={{background:'white',border:'1px solid #E5E7EB',borderRadius:10,padding:'14px 16px',display:'flex',gap:12}}>
+                    <div style={{flex:1}}>
+                      <div style={{display:'flex',justifyContent:'space-between'}}>
+                        <span style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,color:'#111827'}}>{sch.name}</span>
+                        <div style={{width:24,height:14,borderRadius:7,background:sch.active?'#4F46E5':'#E5E7EB',position:'relative',cursor:'pointer'}}><div style={{width:10,height:10,borderRadius:5,background:'white',position:'absolute',top:2,left:sch.active?12:2,transition:'left 0.2s'}}/></div>
+                      </div>
+                      <div style={{display:'flex',gap:12,marginTop:4}}>
+                        <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#6B7280',display:'flex',alignItems:'center',gap:4}}><Clock size={12} color="#9CA3AF"/> {sch.frequency}</span>
+                        <span style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#6B7280',display:'flex',alignItems:'center',gap:4}}><Calendar size={12} color="#9CA3AF"/> Next: {sch.nextRun}</span>
+                      </div>
+                      <div style={{display:'flex',gap:8,marginTop:6}}>
+                        <span style={{background:'#F3F4F6',color:'#374151',padding:'2px 8px',borderRadius:4,fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:600}}>{sch.format}</span>
+                        {sch.recipients.map(r=><span key={r} style={{background:'#EEF2FF',color:'#4F46E5',padding:'2px 8px',borderRadius:999,fontFamily:"'Inter',sans-serif",fontSize:10}}>{r}</span>)}
+                      </div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'flex-start',gap:4}}>
+                      <Edit size={14} color="#9CA3AF" style={{cursor:'pointer'}}/><Trash2 size={14} color="#9CA3AF" style={{cursor:'pointer'}}/>
+                    </div>
+                  </div>
+                )
+              })}
+              <div style={{background:'#F9FAFB',border:'2px dashed #E5E7EB',borderRadius:10,padding:14,textAlign:'center',cursor:'pointer'}} onMouseOver={e=>e.currentTarget.style.background='#F3F4F6'} onMouseOut={e=>e.currentTarget.style.background='#F9FAFB'}>
+                <Plus size={16} color="#9CA3AF" style={{display:'inline',verticalAlign:'-3px',marginRight:4}}/><span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'#6B7280'}}>Add new scheduled report</span>
+              </div>
+            </div>
+
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8,borderTop:'1px solid #F3F4F6',paddingTop:16}}>
+              <button className="btn-ghost" onClick={()=>setScheduledModalOpen(false)}>Close</button>
+              <button className="btn-primary" onClick={()=>setScheduledModalOpen(false)}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RECENT REPORTS MODAL */}
+      {recentReportsOpen && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.4)',backdropFilter:'blur(4px)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div className="card" style={{width:520,borderRadius:16,boxShadow:'0 20px 60px rgba(0,0,0,0.15)',padding:'24px',animation:'slideInUp 0.2s ease-out'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:15,fontWeight:700,color:'#111827'}}>Recent Reports (4)</span>
+              <X size={20} color="#9CA3AF" style={{cursor:'pointer'}} onClick={()=>setRecentReportsOpen(false)}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:16}}>
+              {RECENT_REPORTS.map(r=>{
+                const iconMap = {PDF:{i:FileText,c:'#EF4444',bg:'#FEF2F2'},JSON:{i:Braces,c:'#4F46E5',bg:'#EEF2FF'},CSV:{i:Table,c:'#10B981',bg:'#ECFDF5'}};
+                const ic = iconMap[r.format]||iconMap.PDF; const Icon=ic.i;
+                return (
+                  <div key={r.id} style={{background:'white',border:'1px solid #E5E7EB',borderRadius:8,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
+                    <div style={{width:36,height:36,borderRadius:18,background:ic.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Icon size={18} color={ic.c}/></div>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,color:'#111827'}}>{r.name}</div>
+                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'#9CA3AF',marginTop:2}}>{r.generatedAt} · {r.size} {r.pages?`· ${r.pages} pages `:''}· by {r.generatedBy}</div>
+                    </div>
+                    <Download size={15} color="#9CA3AF" style={{cursor:'pointer'}} onMouseOver={e=>e.currentTarget.style.color='#4F46E5'} onMouseOut={e=>e.currentTarget.style.color='#9CA3AF'} onClick={()=>{showToast(`Redownloading ${r.name}`);setTimeout(()=>setRecentReportsOpen(false),800);}}/>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST */}
+      {toastMessage && (
+        <div style={{position:'fixed',bottom:24,right:24,zIndex:200,background:'white',border:'1px solid #E5E7EB',borderRadius:12,padding:'14px 18px',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',display:'flex',gap:10,alignItems:'center',animation:'slideInRight 0.3s ease-out',minWidth:280}}>
+          {toastMessage.type==='error'?<AlertTriangle size={18} color="#EF4444"/>:<CheckCircle size={18} color="#10B981"/>}
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,color:'#111827',flex:1}}>{toastMessage.msg}</div>
+          <X size={16} color="#9CA3AF" style={{cursor:'pointer'}} onClick={()=>setToastMessage(null)}/>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+/* SETTINGS PAGE — Component */
+const SettingsPage = () => {
+  const [activeTab, setActiveTab] = useState('general');
+  const [saving, setSaving] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    email: true,
+    slack: true,
+    browser: false,
+    criticalOnly: true
+  });
+
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      showToast("Settings saved successfully");
+    }, 800);
+  };
+
+  const TABS = [
+    { id: 'general', label: 'General', icon: Settings },
+    { id: 'team', label: 'Team Members', icon: Users },
+    { id: 'security', label: 'Security & PQC', icon: ShieldCheck },
+    { id: 'api', label: 'API & Integrations', icon: Code },
+    { id: 'notifications', label: 'Notifications', icon: Bell }
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'general':
+        return (
+          <div className="page-animate">
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Organization Profile</h3>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#6B7280', marginBottom: 20 }}>Manage your organization's core identity and deployment environment.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Organization Name</label>
+                <input type="text" defaultValue="Punjab National Bank" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Domain Scope</label>
+                <input type="text" defaultValue="pnbindia.in" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Deployment Environment</label>
+                <select>
+                  <option>Production (On-Premise)</option>
+                  <option>DR Site (Cloud Hybrid)</option>
+                  <option>Testing / Sandbox</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+      case 'team':
+        return (
+          <div className="page-animate">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Team Management</h3>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#6B7280' }}>Manage access for security analysts and administrators.</p>
+              </div>
+              <button className="btn-primary" style={{ padding: '6px 12px' }}>+ Invite Member</button>
+            </div>
+            
+            <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#F9FAFB' }}>
+                    <th style={{ padding: '10px 16px', fontSize: 11, textAlign: 'left', color: '#6B7280' }}>USER</th>
+                    <th style={{ padding: '10px 16px', fontSize: 11, textAlign: 'left', color: '#6B7280' }}>ROLE</th>
+                    <th style={{ padding: '10px 16px', fontSize: 11, textAlign: 'right', color: '#6B7280' }}>ACCESS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { name: 'Raj Kumar', email: 'raj.kumar@pnb.co.in', role: 'Security Admin', access: 'Full' },
+                    { name: 'Deepa Singh', email: 'deepa.s@pnb.co.in', role: 'Cryptographic Auditor', access: 'Read/Write' },
+                    { name: 'Amit Varma', email: 'amit.v@pnb.co.in', role: 'Systems Engineer', access: 'Restricted' }
+                  ].map((m, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{m.name}</div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF' }}>{m.email}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 12 }}>{m.role}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <span style={{ fontSize: 11, background: '#EEF2FF', color: '#4F46E5', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>{m.access}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      case 'security':
+        return (
+          <div className="page-animate">
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Quantum-Safe Policy</h3>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#6B7280', marginBottom: 20 }}>Define the strictness level for PQC compliance across the fleet.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ border: '1.5px solid #4F46E5', background: '#F5F3FF', padding: 16, borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>Enforcement Mode: Strict</span>
+                  <span style={{ fontSize: 11, background: '#4F46E5', color: 'white', padding: '2px 8px', borderRadius: 4 }}>RECOMMENDED</span>
+                </div>
+                <p style={{ fontSize: 12, color: '#4338CA' }}>Alert on any non-hybrid PQC key exchanges. Do not allow legacy RSA {'<'} 3072 bits or ECC {'<'} 256 bits.</p>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: 13, fontWeight: 500 }}>Auto-Alert on NIST Standard Mismatch</label>
+                  <div style={{ width: 36, height: 20, background: '#4F46E5', borderRadius: 10, position: 'relative', cursor: 'pointer' }}><div style={{ width: 14, height: 14, background: 'white', borderRadius: 7, position: 'absolute', top: 3, right: 3 }} /></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: 13, fontWeight: 500 }}>Require Multi-Sig for Local CA Issuance</label>
+                  <div style={{ width: 36, height: 20, background: '#E5E7EB', borderRadius: 10, position: 'relative', cursor: 'pointer' }}><div style={{ width: 14, height: 14, background: 'white', borderRadius: 7, position: 'absolute', top: 3, left: 3 }} /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'api':
+        return (
+          <div className="page-animate">
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>API & Integration Keys</h3>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#6B7280', marginBottom: 20 }}>Connect QuantumShield scanning results to your SIEM or SOAR.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ padding: 16, border: '1px solid #E5E7EB', borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>Production API Key</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>Created 3 months ago</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <code style={{ flex: 1, background: '#F3F4F6', padding: '8px 12px', borderRadius: 6, fontSize: 12, color: '#4F46E5', letterSpacing: '0.05em' }}>qs_live_••••••••••••••••••••••••••••••••</code>
+                  <button className="btn-ghost" style={{ padding: '4px 10px' }}>Copy</button>
+                  <button className="btn-ghost" style={{ padding: '4px 10px', color: '#EF4444', borderColor: '#FEE2E2' }}>Revoke</button>
+                </div>
+              </div>
+              
+              <div style={{ padding: 16, border: '1px dashed #E5E7EB', borderRadius: 10, textAlign: 'center' }}>
+                <button className="btn-ghost" style={{ border: 'none', color: '#4F46E5', margin: '0 auto' }}>+ Generate new integration key</button>
+              </div>
+            </div>
+          </div>
+        );
+      case 'notifications':
+        return (
+          <div className="page-animate">
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Notification Preferences</h3>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#6B7280', marginBottom: 20 }}>Configure where and how you receive security alerts.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {Object.entries({
+                email: 'Email Alerts (Reports & Critical Fixes)',
+                slack: 'Slack Webhook (Real-time scans)',
+                browser: 'Browser Push Notifications',
+                criticalOnly: 'Only notify for CRITICAL risk score changes'
+              }).map(([key, label]) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: 13, fontWeight: 500 }}>{label}</label>
+                  <div 
+                    onClick={() => setNotificationSettings(p => ({...p, [key]: !p[key]}))}
+                    style={{ 
+                      width: 36, height: 20, 
+                      background: notificationSettings[key] ? '#4F46E5' : '#E5E7EB', 
+                      borderRadius: 10, position: 'relative', cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    <div style={{ 
+                      width: 14, height: 14, background: 'white', borderRadius: 7, 
+                      position: 'absolute', top: 3, 
+                      left: notificationSettings[key] ? 19 : 3,
+                      transition: 'left 0.2s'
+                    }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <PageHeader 
+        title="Settings" 
+        subtitle="Manage platform preferences, team access, and security policies" 
+        actions={<button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>}
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 32 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {TABS.map(tab => (
+            <div 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                background: activeTab === tab.id ? '#F5F3FF' : 'transparent',
+                color: activeTab === tab.id ? '#4F46E5' : '#6B7280',
+                transition: 'all 0.15s'
+              }}
+              onMouseOver={e => activeTab !== tab.id && (e.currentTarget.style.background = '#F9FAFB')}
+              onMouseOut={e => activeTab !== tab.id && (e.currentTarget.style.background = 'transparent')}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </div>
+          ))}
+        </div>
+
+        <div className="card" style={{ minHeight: 400 }}>
+          {renderTabContent()}
+        </div>
+      </div>
+
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, background: '#111827', color: 'white', 
+          padding: '12px 20px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)', animation: 'slideInRight 0.3s ease-out',
+          display: 'flex', alignItems: 'center', gap: 10, zIndex: 1000
+        }}>
+          <CheckCircle size={16} color="#10B981" />
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+const CBOMPage = ({ nav }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('All');
+
+  const cbomData = [
+    { id: 'CBOM-001', domain: 'vpn.pnbindia.in', type: 'Gateway', tls: '1.2', keyExchange: 'RSA-2048', cert: 'RSA', status: 'critical' },
+    { id: 'CBOM-002', domain: 'api.pnbindia.in', type: 'API', tls: '1.2', keyExchange: 'ECDH', cert: 'RSA', status: 'critical' },
+    { id: 'CBOM-003', domain: 'files.pnbindia.in', type: 'Storage', tls: '1.3', keyExchange: 'Hybrid', cert: 'ECC', status: 'high' },
+    { id: 'CBOM-004', domain: 'intranet.pnbindia.in', type: 'Internal', tls: '1.3', keyExchange: 'Hybrid', cert: 'ECC', status: 'medium' },
+    { id: 'CBOM-005', domain: 'public.pnbindia.in', type: 'Web', tls: '1.3', keyExchange: 'ML-KEM', cert: 'ML-DSA', status: 'pqc-ready' },
+    { id: 'CBOM-006', domain: 'static.pnbindia.in', type: 'CDN', tls: '1.3', keyExchange: 'ML-KEM', cert: 'ML-DSA', status: 'quantum-safe' }
+  ];
+
+  const filteredData = cbomData.filter(item => {
+    if (filterType !== 'All' && item.status !== filterType.toLowerCase()) return false;
+    if (searchTerm && !item.domain.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div className="page-animate">
+      <PageHeader 
+        title="CBOM Inventory" 
+        subtitle="Cryptographic Bill of Materials for all discovered assets"
+        actions={
+          <button className="btn-primary" onClick={() => nav('reports')}>Export CBOM</button>
+        }
+      />
+      <div className="card" style={{ padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {['All', 'Critical', 'High', 'Medium', 'PQC-Ready', 'Quantum-Safe'].map(type => (
+              <button 
+                key={type}
+                onClick={() => setFilterType(type)}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: 20,
+                  border: '1px solid #E5E7EB',
+                  background: filterType === type ? '#4F46E5' : 'transparent',
+                  color: filterType === type ? 'white' : '#6B7280',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 13,
+                  cursor: 'pointer'
+                }}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <Search size={14} color="#9CA3AF" style={{ position: 'absolute', top: 10, left: 10 }} />
+            <input 
+              type="text" 
+              placeholder="Search assets..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ padding: '8px 12px 8px 32px', border: '1px solid #E5E7EB', borderRadius: 8, width: 250 }} 
+            />
+          </div>
+        </div>
+        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>ID</th>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>DOMAIN</th>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>TYPE</th>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>TLS</th>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>KEY EXCHANGE</th>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>CERTIFICATE</th>
+              <th style={{ padding: '12px 0', fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#9CA3AF' }}>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.map(item => (
+              <tr key={item.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                <td style={{ padding: '16px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6B7280' }}>{item.id}</td>
+                <td style={{ padding: '16px 0', fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{item.domain}</td>
+                <td style={{ padding: '16px 0', fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#374151' }}>{item.type}</td>
+                <td style={{ padding: '16px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#374151' }}>{item.tls}</td>
+                <td style={{ padding: '16px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#374151' }}>{item.keyExchange}</td>
+                <td style={{ padding: '16px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#374151' }}>{item.cert}</td>
+                <td style={{ padding: '16px 0' }}><Badge type={item.status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+
+const CompliancePage = ({ nav }) => {
+  return (
+    <div className="page-animate">
+      <PageHeader 
+        title="Compliance & Standards" 
+        subtitle="Track adherence to NIST PQC standards and internal security policies"
+        actions={
+          <button className="btn-primary" onClick={() => nav('reports')}>Generate Compliance Report</button>
+        }
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 16 }}>NIST PQC Readiness</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              { title: 'FIPS 203 (ML-KEM)', desc: 'Standardized key encapsulation mechanism', status: '34% Adopted', progress: 34 },
+              { title: 'FIPS 204 (ML-DSA)', desc: 'Primary digital signature standard', status: '12% Adopted', progress: 12 },
+              { title: 'FIPS 205 (SLH-DSA)', desc: 'Stateless hash-based signatures', status: '5% Adopted', progress: 5 }
+            ].map(std => (
+              <div key={std.title}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: '#374151' }}>{std.title}</div>
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#6B7280' }}>{std.desc}</div>
+                  </div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#4F46E5' }}>{std.status}</div>
+                </div>
+                <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3 }}>
+                  <div style={{ height: '100%', width: `${std.progress}%`, background: '#4F46E5', borderRadius: 3 }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Internal Policies</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { id: 'SEC-001', title: 'TLS 1.3 Minimum Requirement', passed: 180, total: 247 },
+              { id: 'SEC-002', title: 'No Deprecated Cipher Suites', passed: 195, total: 247 },
+              { id: 'SEC-003', title: 'PFS Enabled on External Endpoints', passed: 210, total: 247 },
+              { id: 'SEC-004', title: 'Hybrid Key Exchange Configured', passed: 45, total: 247 }
+            ].map(policy => (
+              <div key={policy.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid #E5E7EB', borderRadius: 8 }}>
+                <div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#4F46E5', marginBottom: 4 }}>{policy.id}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{policy.title}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 700, color: policy.passed === policy.total ? '#10B981' : '#F59E0B' }}>
+                    {Math.round((policy.passed / policy.total) * 100)}%
+                  </div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#6B7280' }}>Compliant Devices</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 const PAGE_NAMES = {
     dashboard: 'Security Dashboard', discovery: 'Asset Discovery', 'tls-analyzer': 'TLS Analyzer', cbom: 'CBOM Inventory',
@@ -2841,7 +3898,7 @@ const AppShell = () => {
                         <ShieldCheck size={26} color="#4F46E5" style={{ flexShrink: 0 }} />
                         {!sidebarCollapsed && (
                             <div>
-                                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>QuantumShield</div>
+                                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>{import.meta.env.VITE_APP_TITLE || 'QuantumShield'}</div>
                                 <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>PNB Security Suite</div>
                             </div>
                         )}

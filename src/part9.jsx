@@ -106,7 +106,7 @@ const AppShell = () => {
                         <ShieldCheck size={26} color="#4F46E5" style={{ flexShrink: 0 }} />
                         {!sidebarCollapsed && (
                             <div>
-                                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>QuantumShield</div>
+                                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>{import.meta.env.VITE_APP_TITLE || 'QuantumShield'}</div>
                                 <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>PNB Security Suite</div>
                             </div>
                         )}
